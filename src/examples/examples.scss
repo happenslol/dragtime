@@ -1,0 +1,21 @@
+.list {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    border-radius: 5px;
+    border: 1px solid #DDD;
+    padding: 1rem;
+    width: calc(5 * (100px + 2rem));
+
+    .list__item {
+        display: block;
+        width: 100px;
+        height: 100px;
+        background-color: #DDD;
+        line-height: 100px;
+        text-align: center;
+        margin: 1rem;
+        border-radius: 5px;
+    }
+}
+
