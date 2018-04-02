@@ -57,7 +57,7 @@ export class Sortable {
 
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         this.state = SortableState.Dragging
-        this.bindBodyListeners()
+        this.bindWindowEvents()
 
         this.draggingItem = item
         item.setPosition(item.originalPosition)
@@ -76,7 +76,7 @@ export class Sortable {
         this.state = SortableState.Idle
         this.draggingItem = undefined
 
-        this.unbindBodyListeners()
+        this.unbindWindowEvents()
 
         if (!this.placeholder) {
             console.error("No placeholder present during drag!")
@@ -93,19 +93,21 @@ export class Sortable {
             return
         }
 
+        ev.preventDefault()
+
         const { clientX, clientY } = ev
         this.draggingItem.setPosition({ x: clientX, y: clientY })
     }
 
-    bindBodyListeners(): void {
-        this.bodyRef.addEventListener('mousedown', this.onMouseDownBinding)
-        this.bodyRef.addEventListener('mouseup', this.onMouseUpBinding)
-        this.bodyRef.addEventListener('mousemove', this.onMouseMoveBinding)
+    bindWindowEvents(): void {
+        window.addEventListener('mousedown', this.onMouseDownBinding)
+        window.addEventListener('mouseup', this.onMouseUpBinding)
+        window.addEventListener('mousemove', this.onMouseMoveBinding)
     }
 
-    unbindBodyListeners(): void {
-        this.bodyRef.removeEventListener('mousedown', this.onMouseDownBinding)
-        this.bodyRef.removeEventListener('mouseup', this.onMouseUpBinding)
-        this.bodyRef.removeEventListener('mousemove', this.onMouseMoveBinding)
+    unbindWindowEvents(): void {
+        window.removeEventListener('mousedown', this.onMouseDownBinding)
+        window.removeEventListener('mouseup', this.onMouseUpBinding)
+        window.removeEventListener('mousemove', this.onMouseMoveBinding)
     }
 }
