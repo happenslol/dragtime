@@ -21,3 +21,5 @@ export interface Size {
     height: number
 }
 
+export type WindowEvent = "mousedown" | "mouseup" | "mousemove"
+

@@ -1,6 +1,7 @@
 import { DraggableItem, DraggableState } from './draggable-item'
 import { Placeholder } from './placeholder'
 import { noop } from './util'
+import { WindowEvent } from './types'
 
 export enum SortableState {
     Idle,
@@ -100,14 +101,22 @@ export class Sortable {
     }
 
     bindWindowEvents(): void {
-        window.addEventListener('mousedown', this.onMouseDownBinding)
-        window.addEventListener('mouseup', this.onMouseUpBinding)
-        window.addEventListener('mousemove', this.onMouseMoveBinding)
+        this.bindEvent('mousedown', this.onMouseDownBinding)
+        this.bindEvent('mouseup', this.onMouseUpBinding)
+        this.bindEvent('mousemove', this.onMouseMoveBinding)
     }
 
     unbindWindowEvents(): void {
-        window.removeEventListener('mousedown', this.onMouseDownBinding)
-        window.removeEventListener('mouseup', this.onMouseUpBinding)
-        window.removeEventListener('mousemove', this.onMouseMoveBinding)
+        this.unbindEvent('mousedown', this.onMouseDownBinding)
+        this.unbindEvent('mouseup', this.onMouseUpBinding)
+        this.unbindEvent('mousemove', this.onMouseMoveBinding)
+    }
+
+    private bindEvent(ev: WindowEvent, fn: (ev: MouseEvent) => void): void {
+        window.addEventListener(ev, fn, { capture: true })
+    }
+
+    private unbindEvent(ev: WindowEvent, fn: (ev: MouseEvent) => void): void {
+        window.removeEventListener(ev, fn, { capture: true })
     }
 }
