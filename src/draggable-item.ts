@@ -1,4 +1,4 @@
-import { DndClass, ZIndex, Position } from './types'
+import { DndClass, ZIndex, Position, Size } from './types'
 
 export enum DraggableState {
     Idle,
@@ -21,55 +21,44 @@ export interface DraggableStyle {
 }
 
 export class DraggableItem {
-    private state: DraggableState = DraggableState.Idle
-
+    state: DraggableState = DraggableState.Idle
     originalPosition: Position
+    originalSize: Size
 
     constructor(
-        private ref: HTMLElement,
-        private position: number,
+        public ref: HTMLElement,
+        public index: number,
 
-        private onMouseDown: (
+        onMouseDown: (
             item: DraggableItem,
-            ev: MouseEvent
+            ev: MouseEvent,
         ) => void,
     ) {
         this.ref.classList.add(DndClass.Handle)
         this.ref.addEventListener(
             'mousedown',
-            (ev: MouseEvent) => this.onMouseDown(this, ev),
+            (ev: MouseEvent) => onMouseDown(this, ev),
         )
 
-        const { top, left } = this.ref.getBoundingClientRect()
+        const { top: y, left: x, width, height } =
+            this.ref.getBoundingClientRect()
 
-        this.originalPosition = { x: left, y: top }
-    }
-
-    setState(state: DraggableState): void {
-        switch (state) {
-            case DraggableState.Idle: {
-                this.removeStyle()
-            }
-            case DraggableState.Dragging: {
-                this.setPosition(this.originalPosition)
-            }
-            case DraggableState.Dropping: {
-            }
-        }
+        this.originalPosition = { x, y }
+        this.originalSize = { width, height }
     }
 
     setPosition(pos: Position): void {
         this.setStyle(this.getDraggingStyle(pos))
     }
 
-    private setStyle(style: DraggableStyle): void {
-        Object.assign(this.ref.style, style)
-    }
-
-    private removeStyle(): void {
+    removeStyle(): void {
         requestAnimationFrame(() => {
             this.ref.removeAttribute('style')
         })
+    }
+
+    private setStyle(style: DraggableStyle): void {
+        Object.assign(this.ref.style, style)
     }
 
     private getDraggingStyle(pos: Position = { x: 0, y: 0 }): DraggableStyle {

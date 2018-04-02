@@ -1,4 +1,5 @@
 import { DraggableItem, DraggableState } from './draggable-item'
+import { Placeholder } from './placeholder'
 import { noop } from './util'
 
 export enum SortableState {
@@ -14,7 +15,8 @@ export class Sortable {
         <HTMLElement>document.querySelector('body')
 
     state: SortableState = SortableState.Idle
-    private draggingItem: DraggableItem | null = null
+    private draggingItem?: DraggableItem
+    private placeholder?: Placeholder
 
     onMouseDownBinding: (ev: MouseEvent) => void
     onMouseUpBinding: (ev: MouseEvent) => void
@@ -53,43 +55,55 @@ export class Sortable {
         }
     }
 
-    onChildMouseDown(item: DraggableItem, ev: MouseEvent) {
+    onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         this.state = SortableState.Dragging
         this.bindBodyListeners()
 
         this.draggingItem = item
-        item.setState(DraggableState.Dragging)
+        item.setPosition(item.originalPosition)
+        item.state = DraggableState.Dragging
+        this.placeholder = new Placeholder(item)
     }
 
-    onMouseDown(ev: MouseEvent) {}
+    onMouseDown(ev: MouseEvent): void {}
 
-    onMouseUp(ev: MouseEvent) {
-        if (this.draggingItem !== null)
-            this.draggingItem.setState(DraggableState.Idle)
+    onMouseUp(ev: MouseEvent): void {
+        if (this.draggingItem) {
+            this.draggingItem.removeStyle()
+            this.draggingItem.state = DraggableState.Idle
+        }
 
         this.state = SortableState.Idle
-        this.draggingItem = null
+        this.draggingItem = undefined
+
         this.unbindBodyListeners()
+
+        if (!this.placeholder) {
+            console.error("No placeholder present during drag!")
+            return
+        }
+
+        this.placeholder.destroy()
+        this.placeholder = undefined
     }
 
-    onMouseMove(ev: MouseEvent) {
-        const { clientX, clientY } = ev
-
-        if (this.draggingItem === null) {
+    onMouseMove(ev: MouseEvent): void {
+        if (!this.draggingItem) {
             console.log('invalid state')
             return
         }
 
+        const { clientX, clientY } = ev
         this.draggingItem.setPosition({ x: clientX, y: clientY })
     }
 
-    bindBodyListeners() {
+    bindBodyListeners(): void {
         this.bodyRef.addEventListener('mousedown', this.onMouseDownBinding)
         this.bodyRef.addEventListener('mouseup', this.onMouseUpBinding)
         this.bodyRef.addEventListener('mousemove', this.onMouseMoveBinding)
     }
 
-    unbindBodyListeners() {
+    unbindBodyListeners(): void {
         this.bodyRef.removeEventListener('mousedown', this.onMouseDownBinding)
         this.bodyRef.removeEventListener('mouseup', this.onMouseUpBinding)
         this.bodyRef.removeEventListener('mousemove', this.onMouseMoveBinding)

@@ -20,3 +20,7 @@ $prefix: dnd;
     transition: transform .2s cubic-bezier(.2, 0, 0, 1);
 }
 
+.#{$prefix}-placeholder {
+    background-color: black;
+}
+
