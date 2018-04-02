@@ -24,3 +24,13 @@ $prefix: dnd;
     background-color: black;
 }
 
+body.#{$prefix}-dragging {
+    // taken from react-beautiful-dnd
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+

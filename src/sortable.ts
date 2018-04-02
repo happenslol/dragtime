@@ -1,7 +1,7 @@
 import { DraggableItem, DraggableState } from './draggable-item'
 import { Placeholder } from './placeholder'
 import { noop } from './util'
-import { WindowEvent } from './types'
+import { WindowEvent, DndClass } from './types'
 
 export enum SortableState {
     Idle,
@@ -59,10 +59,12 @@ export class Sortable {
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         this.state = SortableState.Dragging
         this.bindWindowEvents()
+        this.bodyRef.classList.add(DndClass.BodyDragging)
 
         this.draggingItem = item
         item.setPosition(item.originalPosition)
         item.state = DraggableState.Dragging
+
         this.placeholder = new Placeholder(item)
     }
 
@@ -75,9 +77,10 @@ export class Sortable {
         }
 
         this.state = SortableState.Idle
-        this.draggingItem = undefined
-
         this.unbindWindowEvents()
+        this.bodyRef.classList.remove(DndClass.BodyDragging)
+
+        this.draggingItem = undefined
 
         if (!this.placeholder) {
             console.error("No placeholder present during drag!")

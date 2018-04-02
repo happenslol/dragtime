@@ -4,6 +4,8 @@ export enum DndClass {
     SteppingAside = "dnd-stepping-aside",
 
     Placeholder = "dnd-placeholder",
+
+    BodyDragging = "dnd-dragging",
 }
 
 export enum ZIndex {
