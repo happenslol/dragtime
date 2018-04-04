@@ -1,7 +1,7 @@
 import { DraggableItem, DraggableState } from './draggable-item'
 import { Placeholder } from './placeholder'
 import { noop } from './util'
-import { WindowEvent, DtimeClass } from './types'
+import { WindowEvent, DtimeClass, Limit, Direction, Position } from './types'
 
 export enum SortableState {
     Idle,
@@ -17,6 +17,8 @@ export class Sortable {
 
     state: SortableState = SortableState.Idle
     private draggingItem?: DraggableItem
+    private draggingIndexOffset: number = 0
+    private draggingLimits: Array<Limit> = []
     private placeholder?: Placeholder
 
     onMouseDownBinding: (ev: MouseEvent) => void
@@ -66,6 +68,9 @@ export class Sortable {
         item.state = DraggableState.Dragging
 
         this.placeholder = new Placeholder(item)
+        this.draggingIndexOffset = 0
+
+        this.calculateNewLimits()
     }
 
     onMouseDown(ev: MouseEvent): void {}
@@ -81,6 +86,7 @@ export class Sortable {
         this.bodyRef.classList.remove(DtimeClass.BodyDragging)
 
         this.draggingItem = undefined
+        this.draggingIndexOffset = 0
 
         if (!this.placeholder) {
             console.error("No placeholder present during drag!")
@@ -93,7 +99,7 @@ export class Sortable {
 
     onMouseMove(ev: MouseEvent): void {
         if (!this.draggingItem) {
-            console.log('invalid state')
+            console.log('no dragging item on mouse move')
             return
         }
 
@@ -101,6 +107,23 @@ export class Sortable {
 
         const { clientX: x, clientY: y } = ev
         this.draggingItem.setPosition({ x, y })
+
+        this.draggingLimits.forEach(it => {
+            if (this.isLimitExceeded(it, { x, y })) {
+                this.draggingLimits = []
+
+                switch (it.direction) {
+                    case Direction.Left:
+                        this.draggingIndexOffset -= 1
+                        break
+                    case Direction.Right:
+                        this.draggingIndexOffset += 1
+                        break
+                }
+
+                this.calculateNewLimits()
+            }
+        })
     }
 
     bindWindowEvents(): void {
@@ -113,6 +136,64 @@ export class Sortable {
         this.unbindEvent('mousedown', this.onMouseDownBinding)
         this.unbindEvent('mouseup', this.onMouseUpBinding)
         this.unbindEvent('mousemove', this.onMouseMoveBinding)
+    }
+
+    calculateNewLimits(): void {
+        if (!this.draggingItem) {
+            console.error("No dragging item on limit calculation")
+            return
+        }
+
+        const currentIndex = this.draggingItem.index + this.draggingIndexOffset
+
+        const previousElementIndex = currentIndex - 1
+        const previousElement = this.elements[previousElementIndex]
+
+        const nextElementIndex = currentIndex + 1
+        const nextElement = this.elements[nextElementIndex]
+
+        if (nextElement) this.draggingLimits.push(
+            this.limitFromElement(Direction.Right, nextElement),
+        )
+
+        if (previousElement) this.draggingLimits.push(
+            this.limitFromElement(Direction.Left, previousElement),
+        )
+    }
+
+    private isLimitExceeded(limit: Limit, pos: Position): boolean {
+        switch (limit.direction) {
+            case Direction.Up:
+                return pos.y > limit.offset
+            case Direction.Down:
+                return pos.y < limit.offset
+            case Direction.Left:
+                return pos.x < limit.offset
+            case Direction.Right:
+                return pos.x > limit.offset
+        }
+    }
+
+    private limitFromElement(direction: Direction, element: DraggableItem): Limit {
+        const bounds = element.originalBounds
+        switch (direction) {
+            case Direction.Up: return {
+                direction,
+                offset: bounds.top + bounds.height,
+            }
+            case Direction.Down: return {
+                direction,
+                offset: bounds.top,
+            }
+            case Direction.Left: return {
+                direction,
+                offset: bounds.left + bounds.width,
+            }
+            case Direction.Right: return {
+                direction,
+                offset: bounds.left,
+            }
+        }
     }
 
     private bindEvent(ev: WindowEvent, fn: (ev: MouseEvent) => void): void {

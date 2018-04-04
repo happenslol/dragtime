@@ -1,4 +1,4 @@
-import { DtimeClass, ZIndex, Position, Size } from './types'
+import { DtimeClass, ZIndex, Position, Size, Margins, Bounds } from './types'
 
 export enum DraggableState {
     Idle,
@@ -24,6 +24,8 @@ export class DraggableItem {
     state: DraggableState = DraggableState.Idle
     originalPosition: Position
     originalSize: Size
+    originalMargins: Margins
+    originalBounds: Bounds
 
     constructor(
         public ref: HTMLElement,
@@ -40,11 +42,21 @@ export class DraggableItem {
             (ev: MouseEvent) => onMouseDown(this, ev),
         )
 
-        const { top: y, left: x, width, height } =
+        const { top, bottom, left, right, width, height } =
             this.ref.getBoundingClientRect()
 
-        this.originalPosition = { x, y }
+        this.originalPosition = { x: left, y: top }
         this.originalSize = { width, height }
+
+        const originalStyle = window.getComputedStyle(this.ref)
+        this.originalMargins = {
+            top: parseInt(originalStyle.marginTop || "0", 10),
+            bottom: parseInt(originalStyle.marginBottom || "0", 10),
+            left: parseInt(originalStyle.marginLeft || "0", 10),
+            right: parseInt(originalStyle.marginRight || "0", 10) || 0,
+        }
+
+        this.originalBounds = { top, left, bottom, right, width, height }
     }
 
     setPosition(pos: Position): void {

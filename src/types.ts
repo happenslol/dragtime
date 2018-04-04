@@ -23,5 +23,33 @@ export interface Size {
     height: number
 }
 
+export interface Margins {
+    top: number
+    bottom: number
+    left: number
+    right: number
+}
+
 export type WindowEvent = "mousedown" | "mouseup" | "mousemove"
+
+export enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+export interface Limit {
+    direction: Direction
+    offset: number
+}
+
+export interface Bounds {
+    top: number
+    bottom: number
+    left: number
+    right: number
+    width: number
+    height: number
+}
 

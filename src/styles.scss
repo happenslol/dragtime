@@ -22,6 +22,10 @@ $prefix: dtime;
 
 .#{$prefix}-placeholder {
     background-color: black;
+
+    // make sure this never collapses
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 body.#{$prefix}-dragging {

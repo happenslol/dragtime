@@ -1,9 +1,10 @@
 import { DraggableItem } from './draggable-item'
-import { Size, DtimeClass } from './types'
+import { Size, DtimeClass, Margins } from './types'
 
 export interface PlaceholderStyle {
     width: number
     height: number
+    margin: string
 }
 
 export class Placeholder {
@@ -21,7 +22,9 @@ export class Placeholder {
 
         this.ref = parentNode.insertBefore(elem, item.ref)
         elem.classList.add(DtimeClass.Placeholder)
-        this.setStyle(this.getPlaceholderStyle(item.originalSize))
+        this.setStyle(this.getPlaceholderStyle(
+            item.originalSize, item.originalMargins,
+        ))
     }
 
     destroy(): void {
@@ -32,8 +35,11 @@ export class Placeholder {
         Object.assign(this.ref.style, style)
     }
 
-    private getPlaceholderStyle({ width, height }: Size): PlaceholderStyle {
-        const result: PlaceholderStyle = { width, height }
+    private getPlaceholderStyle({ width, height }: Size, margins: Margins): PlaceholderStyle {
+        const result: PlaceholderStyle = {
+            width, height,
+            margin: `${margins.top} ${margins.right} ${margins.bottom} ${margins.left}`,
+        }
         return result
     }
 }
