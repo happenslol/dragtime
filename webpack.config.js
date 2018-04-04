@@ -8,15 +8,15 @@ const HtmlWebpackHarddiskPlugin = require('html-webpack-harddisk-plugin')
 module.exports = {
     mode: 'development',
     entry: {
-        'dist/dnd': './src/index.ts',
-        'dist/dnd.min': './src/index.ts',
+        'dist/dragtime': './src/index.ts',
+        'dist/dragtime.min': './src/index.ts',
         'examples/examples.ts': './src/examples/examples.ts'
     },
     output: {
         path: path.resolve(__dirname),
         filename: '[name].js',
         libraryTarget: 'umd',
-        library: 'dnd',
+        library: 'dragtime',
         umdNamedDefine: true
     },
     resolve: {
@@ -60,7 +60,8 @@ module.exports = {
         contentBase: path.join(__dirname, 'examples'),
         watchContentBase: true,
         compress: false,
-        port: 3000
+        port: 3000,
+        host: '0.0.0.0'
     }
 }
 

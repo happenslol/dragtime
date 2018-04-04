@@ -1,4 +1,4 @@
-import { DndClass, ZIndex, Position, Size } from './types'
+import { DtimeClass, ZIndex, Position, Size } from './types'
 
 export enum DraggableState {
     Idle,
@@ -34,7 +34,7 @@ export class DraggableItem {
             ev: MouseEvent,
         ) => void,
     ) {
-        this.ref.classList.add(DndClass.Handle)
+        this.ref.classList.add(DtimeClass.Handle)
         this.ref.addEventListener(
             'mousedown',
             (ev: MouseEvent) => onMouseDown(this, ev),

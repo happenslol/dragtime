@@ -1,5 +1,5 @@
 import { DraggableItem } from './draggable-item'
-import { Size, DndClass } from './types'
+import { Size, DtimeClass } from './types'
 
 export interface PlaceholderStyle {
     width: number
@@ -20,7 +20,7 @@ export class Placeholder {
         }
 
         this.ref = parentNode.insertBefore(elem, item.ref)
-        elem.classList.add(DndClass.Placeholder)
+        elem.classList.add(DtimeClass.Placeholder)
         this.setStyle(this.getPlaceholderStyle(item.originalSize))
     }
 

@@ -1,11 +1,11 @@
-export enum DndClass {
-    Handle = "dnd-handle",
-    HandleBlockPointer = "dnd-handle--block-pointer",
-    SteppingAside = "dnd-stepping-aside",
+export enum DtimeClass {
+    Handle = "dtime-handle",
+    HandleBlockPointer = "dtime-handle--block-pointer",
+    SteppingAside = "dtime-stepping-aside",
 
-    Placeholder = "dnd-placeholder",
+    Placeholder = "dtime-placeholder",
 
-    BodyDragging = "dnd-dragging",
+    BodyDragging = "dtime-dragging",
 }
 
 export enum ZIndex {

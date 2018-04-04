@@ -1,7 +1,7 @@
 import { DraggableItem, DraggableState } from './draggable-item'
 import { Placeholder } from './placeholder'
 import { noop } from './util'
-import { WindowEvent, DndClass } from './types'
+import { WindowEvent, DtimeClass } from './types'
 
 export enum SortableState {
     Idle,
@@ -59,7 +59,7 @@ export class Sortable {
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         this.state = SortableState.Dragging
         this.bindWindowEvents()
-        this.bodyRef.classList.add(DndClass.BodyDragging)
+        this.bodyRef.classList.add(DtimeClass.BodyDragging)
 
         this.draggingItem = item
         item.setPosition(item.originalPosition)
@@ -78,7 +78,7 @@ export class Sortable {
 
         this.state = SortableState.Idle
         this.unbindWindowEvents()
-        this.bodyRef.classList.remove(DndClass.BodyDragging)
+        this.bodyRef.classList.remove(DtimeClass.BodyDragging)
 
         this.draggingItem = undefined
 
@@ -99,8 +99,8 @@ export class Sortable {
 
         ev.preventDefault()
 
-        const { clientX, clientY } = ev
-        this.draggingItem.setPosition({ x: clientX, y: clientY })
+        const { clientX: x, clientY: y } = ev
+        this.draggingItem.setPosition({ x, y })
     }
 
     bindWindowEvents(): void {

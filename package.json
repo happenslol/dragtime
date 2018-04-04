@@ -1,10 +1,10 @@
 {
-  "name": "dnd",
+  "name": "dragtime",
   "version": "0.0.1",
-  "description": "Modern and clean sortable lists",
+  "description": "Modern and clean drag and drop lists",
   "main": "index.js",
   "directories": {
-    "example": "examples"
+    "example": "src/examples"
   },
   "scripts": {
     "clean": "shx rm -rf dist/*",
