@@ -1,7 +1,18 @@
 import { DraggableItem, DraggableState } from './draggable-item'
 import { Placeholder } from './placeholder'
 import { noop } from './util'
-import { WindowEvent, DtimeClass, Limit, Direction, Position } from './types'
+import {
+    WindowEvent,
+    DtimeClass,
+    Limit,
+    Direction,
+    Position,
+    Bounds,
+    Margins,
+
+    emptyBounds,
+    emptyMargins,
+} from './types'
 
 export enum SortableState {
     Idle,
@@ -12,22 +23,26 @@ export enum SortableState {
 
 export class Sortable {
     private elements: Array<DraggableItem> = []
-    private bodyRef: HTMLElement =
-        <HTMLElement>document.querySelector('body')
+    private bodyRef: HTMLElement = <HTMLElement>document.querySelector('body')
 
     state: SortableState = SortableState.Idle
+
     private draggingItem?: DraggableItem
-    private lastIndexOffset: number = 0
+    private clickOffset: Position = { x: 0, y: 0 }
     private draggingIndexOffset: number = 0
     private draggingLimits: Array<Limit> = []
     private placeholder?: Placeholder
+
+    private bounds: Bounds = emptyBounds()
+    private margins: Margins = emptyMargins()
+    private wasOutOfBounds: boolean = false
 
     onMouseDownBinding: (ev: MouseEvent) => void
     onMouseUpBinding: (ev: MouseEvent) => void
     onMouseMoveBinding: (ev: MouseEvent) => void
 
     constructor(
-        elem: HTMLElement,
+        private ref: HTMLElement,
         childSelector?: string,
     ) {
         this.onMouseDownBinding = this.onMouseDown.bind(this)
@@ -37,7 +52,7 @@ export class Sortable {
         if (childSelector) {
             // TODO: make sure these are all children and don't
             // contain each other
-            const children = elem.querySelectorAll(childSelector)
+            const children = ref.querySelectorAll(childSelector)
 
             for (let i = 0; i < children.length; i++) {
                 const child = new DraggableItem(
@@ -48,51 +63,78 @@ export class Sortable {
                 this.elements.push(child)
             }
         } else {
-            for (let i = 0; i < elem.children.length; i++) {
+            for (let i = 0; i < ref.children.length; i++) {
                 const child = new DraggableItem(
-                    <HTMLElement>elem.children[i], i,
+                    <HTMLElement>ref.children[i], i,
                     this.onChildMouseDown.bind(this),
                 )
 
                 this.elements.push(child)
             }
         }
+
+        this.calculateDimensions()
+    }
+
+    calculateDimensions(): void {
+        const { top, left, width, height } = this.ref.getBoundingClientRect()
+        this.bounds = { top, left, width, height }
+
+        const style = window.getComputedStyle(this.ref)
+        this.margins = {
+            top: parseInt(style.marginTop || "0", 10),
+            bottom: parseInt(style.marginBottom || "0", 10),
+            left: parseInt(style.marginLeft || "0", 10),
+            right: parseInt(style.marginRight || "0", 10) || 0,
+        }
     }
 
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
+        // TODO: can we start dragging, sloppy click detection etc.
+        const { clientX: x, clientY: y } = ev
+        const pos: Position = { x, y }
+
+        this.startDragging(item, pos)
+    }
+
+    startDragging(item: DraggableItem, pos: Position): void {
         this.state = SortableState.Dragging
         this.bindWindowEvents()
         this.bodyRef.classList.add(DtimeClass.BodyDragging)
 
         this.draggingItem = item
-        item.setPosition(item.originalPosition)
+        item.setPosition({ x: item.bounds.left, y: item.bounds.top })
         item.state = DraggableState.Dragging
 
         this.placeholder = new Placeholder(item)
         this.draggingIndexOffset = 0
-        this.lastIndexOffset = 0
 
-        this.calculateNewLimits()
+        this.wasOutOfBounds = false
+
+        const diffX = pos.x - item.bounds.left
+        const diffY = pos.y - item.bounds.top
+
+        this.clickOffset = { x: diffX, y: diffY }
+        this.calculateNewLimits(pos)
     }
 
-    onMouseDown(ev: MouseEvent): void {}
-
-    onMouseUp(ev: MouseEvent): void {
-        if (this.draggingItem) {
-            this.draggingItem.removeStyle()
-            this.draggingItem.state = DraggableState.Idle
+    stopDragging(): void {
+        if (!this.draggingItem) {
+            console.error("No dragging item on stop dragging")
+            return
         }
+
+        this.draggingItem.state = DraggableState.Idle
+        this.draggingItem = undefined
 
         this.state = SortableState.Idle
         this.unbindWindowEvents()
         this.bodyRef.classList.remove(DtimeClass.BodyDragging)
 
-        this.draggingItem = undefined
         this.draggingIndexOffset = 0
-        this.lastIndexOffset = 0
 
         if (!this.placeholder) {
-            console.error("No placeholder present during drag!")
+            console.error("No placeholder on stop dragging")
             return
         }
 
@@ -102,33 +144,72 @@ export class Sortable {
         this.resetElements()
     }
 
-    onMouseMove(ev: MouseEvent): void {
+    continueDragging(pos: Position): void {
         if (!this.draggingItem) {
-            console.log('no dragging item on mouse move')
+            console.log("No dragging item on continue dragging")
             return
         }
 
+        const itemPos: Position = {
+            x: pos.x - this.clickOffset.x,
+            y: pos.y - this.clickOffset.y,
+        }
+        this.draggingItem.setPosition(itemPos)
+
+        const itemCenter: Position = {
+            x: itemPos.x + (this.draggingItem.bounds.width / 2),
+            y: itemPos.y + (this.draggingItem.bounds.height / 2),
+        }
+
+        if (!this.isInSortableBounds(itemCenter)) {
+            if (!this.wasOutOfBounds) {
+                // NOTE: Left bounds
+
+                // Reset limits. Might want to keep limits intact
+                // in some form if recalculating them on reenter
+                // incurs some sort of performance penalty.
+                this.draggingLimits = []
+                this.resetElements()
+
+                this.wasOutOfBounds = true
+            }
+
+            return
+        }
+
+        // If we were out of bounds before, we need to recalculate
+        // our limits
+        if (this.wasOutOfBounds) {
+            // NOTE: Entered bounds
+            this.wasOutOfBounds = false
+            this.findNewDraggingIndex(itemCenter)
+            this.calculateNewLimits(itemCenter)
+        }
+
+        this.draggingLimits.forEach(it => {
+            // NOTE: For some reason ts thinks draggingItem can be undefined here
+            if (this.isLimitExceeded(it, itemCenter)) {
+                this.draggingLimits = []
+
+                this.findNewDraggingIndex(itemCenter)
+                this.calculateNewLimits(itemCenter)
+            }
+        })
+    }
+
+    onMouseDown(ev: MouseEvent): void {}
+
+    onMouseUp(ev: MouseEvent): void {
+        this.stopDragging()
+    }
+
+    onMouseMove(ev: MouseEvent): void {
         ev.preventDefault()
 
         const { clientX: x, clientY: y } = ev
-        this.draggingItem.setPosition({ x, y })
+        const pos: Position = { x, y }
 
-        this.draggingLimits.forEach(it => {
-            if (this.isLimitExceeded(it, { x, y })) {
-                this.draggingLimits = []
-                switch (it.direction) {
-                    case Direction.Left:
-                        this.draggingIndexOffset -= 1
-                        break
-                    case Direction.Right:
-                        this.draggingIndexOffset += 1
-                        break
-                }
-
-                this.moveElements()
-                this.calculateNewLimits()
-            }
-        })
+        this.continueDragging(pos)
     }
 
     bindWindowEvents(): void {
@@ -143,7 +224,7 @@ export class Sortable {
         this.unbindEvent('mousemove', this.onMouseMoveBinding)
     }
 
-    calculateNewLimits(): void {
+    calculateNewLimits(pos: Position): void {
         if (!this.draggingItem) {
             console.error("No dragging item on limit calculation")
             return
@@ -166,35 +247,68 @@ export class Sortable {
         )
     }
 
-    moveElements(): void {
-        this.resetElements()
+    findNewDraggingIndex(pos: Position): void {
+        console.log('finding new dragging index')
 
-        if (this.draggingIndexOffset === 0) {
+        if (!this.draggingItem) {
+            console.error("No dragging item on find new index")
+            this.draggingIndexOffset = 0
             return
         }
 
-        if (!this.draggingItem) return
+        // NOTE: If no new index is found, the old one is returned
+        // TODO: Implement this for vertical/grid lists
+        let result = 0
 
-        if (this.draggingIndexOffset < 0) {
-            for (let i = this.draggingItem.index + this.draggingIndexOffset; i < this.draggingItem.index; i++) {
-                console.log(`moving element ${this.elements[i].index} to the right`)
-                const style = { transform: "translateX(100px)"}
-                Object.assign(this.elements[i].ref.style, style)
-            }
-        } else {
-            for (let i = this.draggingItem.index + 1; i <= this.draggingItem.index + this.draggingIndexOffset; i++) {
-                console.log(`moving element ${this.elements[i].index} to the left`)
-                const style = { transform: "translateX(-100px)"}
-                Object.assign(this.elements[i].ref.style, style)
+        for (let i = 0; i < this.elements.length; i++) {
+            const it = this.elements[i]
+
+            const x1 = it.marginBounds.left
+            const x2 = it.marginBounds.left + it.marginBounds.width
+
+            if (pos.x >= x1 && pos.x <= x2) {
+                // Found element!
+                const draggingIndex = this.draggingItem.index
+                result = it.index - draggingIndex
+                console.log(`now hovering element ${it.index}`)
+                break
             }
         }
+
+        this.draggingIndexOffset = result
     }
 
+    // NOTE: This NEVER resets the dragging item!
     resetElements(): void {
-        this.elements.forEach(it => it.ref.removeAttribute("style"))
+        this.elements
+            .filter(it => it != this.draggingItem)
+            .forEach(it => it.ref.removeAttribute("style"))
+    }
+
+    private isInSortableBounds(pos: Position): boolean {
+        if (!this.draggingItem) {
+            console.error("No dragging item on is in sortable bounds")
+            return true
+        }
+
+        const x1 = this.bounds.left
+        const x2 = this.bounds.left + this.bounds.width
+
+        const y1 = this.bounds.top
+        const y2 = this.bounds.top + this.bounds.height
+
+        return (
+            (pos.x >= x1 && pos.x <= x2) &&
+            (pos.y >= y1 && pos.y <= y2)
+        ) 
     }
 
     private isLimitExceeded(limit: Limit, pos: Position): boolean {
+        if (!this.draggingItem) {
+            console.error("No dragging item on is limit exceeded")
+            return false
+        }
+
         switch (limit.direction) {
             case Direction.Up:
                 return pos.y > limit.offset
@@ -205,26 +319,32 @@ export class Sortable {
             case Direction.Right:
                 return pos.x > limit.offset
         }
+
+        return false
     }
 
     private limitFromElement(direction: Direction, element: DraggableItem): Limit {
-        const bounds = element.originalBounds
+        const { marginBounds } = element
         switch (direction) {
             case Direction.Up: return {
                 direction,
-                offset: bounds.top + bounds.height,
+                offset: marginBounds.top + marginBounds.height,
             }
             case Direction.Down: return {
                 direction,
-                offset: bounds.top,
+                offset: marginBounds.top,
             }
             case Direction.Left: return {
                 direction,
-                offset: bounds.left + bounds.width,
+                offset: marginBounds.left + marginBounds.width,
             }
             case Direction.Right: return {
                 direction,
-                offset: bounds.left,
+                offset: marginBounds.left,
+            }
+            case Direction.None: {
+                console.error('Cant get limit with no direction')
+                return { direction, offset: 0 }
             }
         }
     }

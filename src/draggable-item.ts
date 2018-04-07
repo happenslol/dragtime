@@ -1,4 +1,18 @@
-import { DtimeClass, ZIndex, Position, Size, Margins, Bounds } from './types'
+import {
+    DtimeClass,
+    ZIndex,
+    Position,
+    Size,
+    Margins,
+    Bounds,
+    Displacement,
+    Direction,
+
+    emptyBounds,
+    emptyMargins,
+    emptyPosition,
+    emptyDisplacement,
+} from './types'
 
 export enum DraggableState {
     Idle,
@@ -20,12 +34,19 @@ export interface DraggableStyle {
     transform: string
 }
 
+export interface DisplacementStyle {
+    transform: string
+}
+
 export class DraggableItem {
     state: DraggableState = DraggableState.Idle
-    originalPosition: Position
-    originalSize: Size
-    originalMargins: Margins
-    originalBounds: Bounds
+
+    margins: Margins = emptyMargins()
+    bounds: Bounds = emptyBounds()
+    marginBounds: Bounds = emptyBounds()
+    center: Position = emptyPosition()
+
+    displacement: Displacement = emptyDisplacement()
 
     constructor(
         public ref: HTMLElement,
@@ -42,21 +63,32 @@ export class DraggableItem {
             (ev: MouseEvent) => onMouseDown(this, ev),
         )
 
-        const { top, bottom, left, right, width, height } =
-            this.ref.getBoundingClientRect()
+        this.calculateDimensions()
+    }
 
-        this.originalPosition = { x: left, y: top }
-        this.originalSize = { width, height }
-
-        const originalStyle = window.getComputedStyle(this.ref)
-        this.originalMargins = {
-            top: parseInt(originalStyle.marginTop || "0", 10),
-            bottom: parseInt(originalStyle.marginBottom || "0", 10),
-            left: parseInt(originalStyle.marginLeft || "0", 10),
-            right: parseInt(originalStyle.marginRight || "0", 10) || 0,
+    calculateDimensions(): void {
+        const style = window.getComputedStyle(this.ref)
+        this.margins = {
+            top: parseInt(style.marginTop || "0", 10),
+            bottom: parseInt(style.marginBottom || "0", 10),
+            left: parseInt(style.marginLeft || "0", 10),
+            right: parseInt(style.marginRight || "0", 10) || 0,
         }
 
-        this.originalBounds = { top, left, bottom, right, width, height }
+        const { top, left, width, height } = this.ref.getBoundingClientRect()
+        this.bounds = { top, left, width, height }
+
+        this.center = {
+            x: left + (width / 2),
+            y: top + (height / 2),
+        }
+
+        this.marginBounds = {
+            top: top - this.margins.top,
+            left: left - this.margins.left,
+            width: this.bounds.width + this.margins.left + this.margins.right,
+            height: this.bounds.height + this.margins.top + this.margins.bottom,
+        }
     }
 
     setPosition(pos: Position): void {
@@ -69,7 +101,26 @@ export class DraggableItem {
         })
     }
 
-    private setStyle(style: DraggableStyle): void {
+    setDisplacement(displacement: Displacement): void {
+        if (this.state !== DraggableState.Idle) {
+            console.error("Tried to set displacement on element not in idle")
+            return
+        }
+
+        if (
+            this.displacement.direction === displacement.direction &&
+            this.displacement.offset === displacement.offset
+        ) return
+
+        if (displacement.direction === Direction.None) {
+            this.removeStyle()
+            return
+        }
+
+        this.setStyle(this.getDisplacementStyle(displacement))
+    }
+
+    private setStyle(style: DraggableStyle | DisplacementStyle): void {
         Object.assign(this.ref.style, style)
     }
 
@@ -86,6 +137,26 @@ export class DraggableItem {
             pointerEvents: 'none',
             transition: 'none',
             transform: '',
+        }
+
+        return result
+    }
+
+    private getDisplacementStyle({ direction, offset }: Displacement): DisplacementStyle {
+        const translateString = (
+            direction === Direction.Up ||
+            direction === Direction.Down
+        ) ? "translateY"
+        : "translateX"
+
+        const offsetString = (
+            direction === Direction.Left ||
+            direction === Direction.Up
+        ) ? `-${offset}`
+        : `${offset}`
+
+        const result: DisplacementStyle = {
+            transform: `${translateString}(${offsetString})`,
         }
 
         return result

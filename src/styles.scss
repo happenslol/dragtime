@@ -21,7 +21,7 @@ $prefix: dtime;
 }
 
 .#{$prefix}-placeholder {
-    background-color: black;
+    // background-color: black;
 
     // make sure this never collapses
     flex-shrink: 0;

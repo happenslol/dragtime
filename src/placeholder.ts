@@ -10,9 +10,9 @@ export interface PlaceholderStyle {
 export class Placeholder {
     ref: HTMLElement
 
-    constructor(item: DraggableItem) {
+    constructor({ ref, bounds, margins }: DraggableItem) {
         const elem = document.createElement("div")
-        const parentNode = item.ref.parentNode
+        const parentNode = ref.parentNode
         if (!parentNode) {
             // NOTE: This should never happen. (theoretically)
             console.error("No parent node for draggable item!")
@@ -20,10 +20,12 @@ export class Placeholder {
             return
         }
 
-        this.ref = parentNode.insertBefore(elem, item.ref)
+        const { width, height } = bounds
+
+        this.ref = parentNode.insertBefore(elem, ref)
         elem.classList.add(DtimeClass.Placeholder)
         this.setStyle(this.getPlaceholderStyle(
-            item.originalSize, item.originalMargins,
+            { width, height }, margins,
         ))
     }
 
