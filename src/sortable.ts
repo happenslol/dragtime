@@ -17,6 +17,7 @@ export class Sortable {
 
     state: SortableState = SortableState.Idle
     private draggingItem?: DraggableItem
+    private lastIndexOffset: number = 0
     private draggingIndexOffset: number = 0
     private draggingLimits: Array<Limit> = []
     private placeholder?: Placeholder
@@ -69,6 +70,7 @@ export class Sortable {
 
         this.placeholder = new Placeholder(item)
         this.draggingIndexOffset = 0
+        this.lastIndexOffset = 0
 
         this.calculateNewLimits()
     }
@@ -87,6 +89,7 @@ export class Sortable {
 
         this.draggingItem = undefined
         this.draggingIndexOffset = 0
+        this.lastIndexOffset = 0
 
         if (!this.placeholder) {
             console.error("No placeholder present during drag!")
@@ -95,6 +98,8 @@ export class Sortable {
 
         this.placeholder.destroy()
         this.placeholder = undefined
+
+        this.resetElements()
     }
 
     onMouseMove(ev: MouseEvent): void {
@@ -111,7 +116,6 @@ export class Sortable {
         this.draggingLimits.forEach(it => {
             if (this.isLimitExceeded(it, { x, y })) {
                 this.draggingLimits = []
-
                 switch (it.direction) {
                     case Direction.Left:
                         this.draggingIndexOffset -= 1
@@ -121,6 +125,7 @@ export class Sortable {
                         break
                 }
 
+                this.moveElements()
                 this.calculateNewLimits()
             }
         })
@@ -159,6 +164,34 @@ export class Sortable {
         if (previousElement) this.draggingLimits.push(
             this.limitFromElement(Direction.Left, previousElement),
         )
+    }
+
+    moveElements(): void {
+        this.resetElements()
+
+        if (this.draggingIndexOffset === 0) {
+            return
+        }
+
+        if (!this.draggingItem) return
+
+        if (this.draggingIndexOffset < 0) {
+            for (let i = this.draggingItem.index + this.draggingIndexOffset; i < this.draggingItem.index; i++) {
+                console.log(`moving element ${this.elements[i].index} to the right`)
+                const style = { transform: "translateX(100px)"}
+                Object.assign(this.elements[i].ref.style, style)
+            }
+        } else {
+            for (let i = this.draggingItem.index + 1; i <= this.draggingItem.index + this.draggingIndexOffset; i++) {
+                console.log(`moving element ${this.elements[i].index} to the left`)
+                const style = { transform: "translateX(-100px)"}
+                Object.assign(this.elements[i].ref.style, style)
+            }
+        }
+    }
+
+    resetElements(): void {
+        this.elements.forEach(it => it.ref.removeAttribute("style"))
     }
 
     private isLimitExceeded(limit: Limit, pos: Position): boolean {
