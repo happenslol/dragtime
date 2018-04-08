@@ -167,14 +167,14 @@ export class Sortable {
         if (!this.isInSortableBounds(itemCenter)) {
             if (!this.wasOutOfBounds) {
                 // NOTE: Left bounds
+                this.wasOutOfBounds = true
 
                 // Reset limits. Might want to keep limits intact
                 // in some form if recalculating them on reenter
                 // incurs some sort of performance penalty.
                 this.draggingLimits = []
+                this.draggingIndexOffset = 0
                 this.resetElements()
-
-                this.wasOutOfBounds = true
             }
 
             return
@@ -189,11 +189,10 @@ export class Sortable {
             this.wasOutOfBounds = false
 
             newOffset = this.findNewDraggingIndex(itemCenter)
-            const oldOffset = this.draggingIndexOffset
 
             this.draggingIndexOffset = newOffset
             this.calculateNewLimits(itemCenter)
-            this.displaceItems(oldOffset, newOffset)
+            this.displaceItems(0, newOffset)
 
             return
         }
@@ -216,45 +215,43 @@ export class Sortable {
             return
         }
 
-        console.log(`oldOffset: ${oldOffset}, newOffset: ${newOffset}`)
-
         const oldIndex = this.draggingItem.index + oldOffset
         const newIndex = this.draggingItem.index + newOffset
 
-        // WHAT IS WRONG WITH THIS AHHHHH
-        if (oldOffset < newOffset) {
-            // dragging item is moving forwards
-            // -> items after need to move backwards
-            // -> items before need to reset
-            for (let i = oldIndex; i <= newIndex; i++) {
-                if (this.elements[i] == this.draggingItem) continue
-
-                if (this.elements[i].index > this.draggingItem.index) {
+        if (newOffset > 0) {
+            // Moving right of 0
+            if (oldOffset < newOffset) {
+                // fowards
+                for (let i = oldIndex + 1; i <= newIndex; i++)
                     this.elements[i].setDisplacement({
                         direction: DisplacementDirection.Backward,
                         offset: this.draggingItem.marginBounds.width,
                     })
-                } else {
+
+            } else if (oldOffset > newOffset) {
+                //backwards
+                for (let i = oldIndex; i > newIndex; i--)
                     this.elements[i].setDisplacement(emptyDisplacement())
-                }
             }
 
-        } else if (oldOffset > newOffset) {
-            // dragging item is moving backwards
-            // -> items before need to move fowards
-            // -> items after need to reset
-            for (let i = newIndex; i <= newIndex; i++) {
-                if (this.elements[i] == this.draggingItem) continue
-
-                if (this.elements[i].index > this.draggingItem.index) {
+        } else if (newOffset < 0) {
+            // Moving left of 0
+            if (oldOffset < newOffset) {
+                // fowards
+                for (let i = oldIndex; i < newIndex; i++)
                     this.elements[i].setDisplacement(emptyDisplacement())
-                } else {
+
+            } else if (oldOffset > newOffset) {
+                //backwards
+                for (let i = oldIndex - 1; i >= newIndex; i--)
                     this.elements[i].setDisplacement({
                         direction: DisplacementDirection.Forward,
                         offset: this.draggingItem.marginBounds.width,
                     })
-                }
             }
+
+        } else {
+            this.resetElements()
         }
     }
 

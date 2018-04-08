@@ -104,7 +104,8 @@ export class DraggableItem {
 
     setDisplacement(displacement: Displacement): void {
         if (this.state !== DraggableState.Idle) {
-            console.error("Tried to set displacement on element not in idle")
+            // TODO: Handle this in sortable
+            // console.error("Tried to set displacement on element not in idle")
             return
         }
 
