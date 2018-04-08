@@ -1,5 +1,5 @@
 import { DraggableItem } from './draggable-item'
-import { Size, DtimeClass, Margins } from './types'
+import { Size, DtimeClass, Margins, Bounds } from './types'
 
 export interface PlaceholderStyle {
     width: number
@@ -10,9 +10,16 @@ export interface PlaceholderStyle {
 export class Placeholder {
     ref: HTMLElement
 
+    bounds: Bounds
+    margins: Margins
+
     constructor({ ref, bounds, margins }: DraggableItem) {
         const elem = document.createElement("div")
         const parentNode = ref.parentNode
+
+        this.bounds = bounds
+        this.margins = margins
+
         if (!parentNode) {
             // NOTE: This should never happen. (theoretically)
             console.error("No parent node for draggable item!")

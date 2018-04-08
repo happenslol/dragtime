@@ -127,6 +127,56 @@ export class Sortable {
             return
         }
 
+        if (this.draggingIndexOffset !== 0) {
+            const draggedToIndex = this.draggingItem.index + this.draggingIndexOffset
+            const insertParent = this.draggingItem.ref.parentNode
+            if (!insertParent) {
+                console.error("No parent node on stop dragging")
+                return
+            }
+
+            if (this.draggingIndexOffset > 0) {
+                const itemToInsertBefore = this.elements[draggedToIndex + 1]
+                insertParent.insertBefore(
+                    this.draggingItem.ref,
+                    itemToInsertBefore.ref,
+                )
+
+                const reorderFrom = this.draggingItem.index + 1
+                const reorderTo = itemToInsertBefore.index - 1
+                for (let i = reorderFrom; i <= reorderTo; i++)
+                    this.elements[i].index--
+
+            } else if (this.draggingIndexOffset < 0) {
+                const itemToInsertBefore = this.elements[draggedToIndex]
+                insertParent.insertBefore(
+                    this.draggingItem.ref,
+                    itemToInsertBefore.ref,
+                )
+
+                const reorderFrom = itemToInsertBefore.index
+                const reorderTo = this.draggingItem.index - 1
+                for (let i = reorderFrom; i <= reorderTo; i++)
+                    this.elements[i].index++
+            }
+
+            this.draggingItem.index = this.draggingItem.index + this.draggingIndexOffset
+
+            this.elements.sort(({ index: a }, { index: b }) => {
+                if (a > b) return 1
+                if (a < b) return -1
+
+                console.error('Found same index twice')
+                return 0
+            })
+
+            requestAnimationFrame(() => {
+                this.elements.forEach(it => {
+                    it.calculateDimensions()
+                })
+            })
+        }
+
         this.draggingItem.state = DraggableState.Idle
         this.draggingItem = undefined
 
@@ -218,6 +268,8 @@ export class Sortable {
         const oldIndex = this.draggingItem.index + oldOffset
         const newIndex = this.draggingItem.index + newOffset
 
+        // TODO: Rewrite this to be simpler and more consistens with
+        // drags across 0
         if (newOffset > 0) {
             // Moving right of 0
             if (oldOffset < newOffset) {
@@ -229,7 +281,7 @@ export class Sortable {
                     })
 
             } else if (oldOffset > newOffset) {
-                //backwards
+                // backwards
                 for (let i = oldIndex; i > newIndex; i--)
                     this.elements[i].setDisplacement(emptyDisplacement())
             }
@@ -242,7 +294,7 @@ export class Sortable {
                     this.elements[i].setDisplacement(emptyDisplacement())
 
             } else if (oldOffset > newOffset) {
-                //backwards
+                // backwards
                 for (let i = oldIndex - 1; i >= newIndex; i--)
                     this.elements[i].setDisplacement({
                         direction: DisplacementDirection.Forward,
