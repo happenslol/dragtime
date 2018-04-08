@@ -12,6 +12,9 @@ import {
 
     emptyBounds,
     emptyMargins,
+    DisplacementDirection,
+    Displacement,
+    emptyDisplacement,
 } from './types'
 
 export enum SortableState {
@@ -177,24 +180,82 @@ export class Sortable {
             return
         }
 
+        let newOffset = 0
+
         // If we were out of bounds before, we need to recalculate
         // our limits
         if (this.wasOutOfBounds) {
             // NOTE: Entered bounds
             this.wasOutOfBounds = false
-            this.findNewDraggingIndex(itemCenter)
+
+            newOffset = this.findNewDraggingIndex(itemCenter)
+            const oldOffset = this.draggingIndexOffset
+
+            this.draggingIndexOffset = newOffset
             this.calculateNewLimits(itemCenter)
+            this.displaceItems(oldOffset, newOffset)
+
+            return
         }
 
         this.draggingLimits.forEach(it => {
-            // NOTE: For some reason ts thinks draggingItem can be undefined here
             if (this.isLimitExceeded(it, itemCenter)) {
-                this.draggingLimits = []
+                newOffset = this.findNewDraggingIndex(itemCenter)
+                const oldOffset = this.draggingIndexOffset
 
-                this.findNewDraggingIndex(itemCenter)
+                this.draggingIndexOffset = newOffset
                 this.calculateNewLimits(itemCenter)
+                this.displaceItems(oldOffset, newOffset)
             }
         })
+    }
+
+    displaceItems(oldOffset: number, newOffset: number): void {
+        if (!this.draggingItem) {
+            console.error("Tried to displace items without dragging item")
+            return
+        }
+
+        console.log(`oldOffset: ${oldOffset}, newOffset: ${newOffset}`)
+
+        const oldIndex = this.draggingItem.index + oldOffset
+        const newIndex = this.draggingItem.index + newOffset
+
+        // WHAT IS WRONG WITH THIS AHHHHH
+        if (oldOffset < newOffset) {
+            // dragging item is moving forwards
+            // -> items after need to move backwards
+            // -> items before need to reset
+            for (let i = oldIndex; i <= newIndex; i++) {
+                if (this.elements[i] == this.draggingItem) continue
+
+                if (this.elements[i].index > this.draggingItem.index) {
+                    this.elements[i].setDisplacement({
+                        direction: DisplacementDirection.Backward,
+                        offset: this.draggingItem.marginBounds.width,
+                    })
+                } else {
+                    this.elements[i].setDisplacement(emptyDisplacement())
+                }
+            }
+
+        } else if (oldOffset > newOffset) {
+            // dragging item is moving backwards
+            // -> items before need to move fowards
+            // -> items after need to reset
+            for (let i = newIndex; i <= newIndex; i++) {
+                if (this.elements[i] == this.draggingItem) continue
+
+                if (this.elements[i].index > this.draggingItem.index) {
+                    this.elements[i].setDisplacement(emptyDisplacement())
+                } else {
+                    this.elements[i].setDisplacement({
+                        direction: DisplacementDirection.Forward,
+                        offset: this.draggingItem.marginBounds.width,
+                    })
+                }
+            }
+        }
     }
 
     onMouseDown(ev: MouseEvent): void {}
@@ -230,6 +291,9 @@ export class Sortable {
             return
         }
 
+        this.draggingLimits = []
+
+        // TODO: Implement this for vertical and grid lists
         const currentIndex = this.draggingItem.index + this.draggingIndexOffset
 
         const previousElementIndex = currentIndex - 1
@@ -247,13 +311,10 @@ export class Sortable {
         )
     }
 
-    findNewDraggingIndex(pos: Position): void {
-        console.log('finding new dragging index')
-
+    findNewDraggingIndex(pos: Position): number {
         if (!this.draggingItem) {
             console.error("No dragging item on find new index")
-            this.draggingIndexOffset = 0
-            return
+            return 0
         }
 
         // NOTE: If no new index is found, the old one is returned
@@ -270,19 +331,18 @@ export class Sortable {
                 // Found element!
                 const draggingIndex = this.draggingItem.index
                 result = it.index - draggingIndex
-                console.log(`now hovering element ${it.index}`)
                 break
             }
         }
 
-        this.draggingIndexOffset = result
+        return result
     }
 
     // NOTE: This NEVER resets the dragging item!
     resetElements(): void {
         this.elements
             .filter(it => it != this.draggingItem)
-            .forEach(it => it.ref.removeAttribute("style"))
+            .forEach(it => it.resetDisplacement())
     }
 
     private isInSortableBounds(pos: Position): boolean {

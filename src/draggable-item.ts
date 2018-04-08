@@ -12,6 +12,7 @@ import {
     emptyMargins,
     emptyPosition,
     emptyDisplacement,
+    DisplacementDirection,
 } from './types'
 
 export enum DraggableState {
@@ -112,12 +113,19 @@ export class DraggableItem {
             this.displacement.offset === displacement.offset
         ) return
 
-        if (displacement.direction === Direction.None) {
+        this.displacement = displacement
+
+        if (displacement.direction === DisplacementDirection.None) {
             this.removeStyle()
             return
         }
 
-        this.setStyle(this.getDisplacementStyle(displacement))
+        this.setStyle(this.getDisplacementStyle(this.displacement))
+    }
+
+    resetDisplacement(): void {
+        this.ref.removeAttribute("style")
+        this.displacement = emptyDisplacement()
     }
 
     private setStyle(style: DraggableStyle | DisplacementStyle): void {
@@ -143,20 +151,13 @@ export class DraggableItem {
     }
 
     private getDisplacementStyle({ direction, offset }: Displacement): DisplacementStyle {
-        const translateString = (
-            direction === Direction.Up ||
-            direction === Direction.Down
-        ) ? "translateY"
-        : "translateX"
-
-        const offsetString = (
-            direction === Direction.Left ||
-            direction === Direction.Up
-        ) ? `-${offset}`
-        : `${offset}`
+        // TODO: Implement this for vertical/grid lists
+        const offsetString = direction === DisplacementDirection.Forward
+            ? `${offset}`
+            : `-${offset}`
 
         const result: DisplacementStyle = {
-            transform: `${translateString}(${offsetString})`,
+            transform: `translateX(${offsetString}px)`,
         }
 
         return result

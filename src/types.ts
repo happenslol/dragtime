@@ -65,12 +65,18 @@ export const emptyBounds: () => Bounds = () => ({
     width: 0, height: 0,
 })
 
+export enum DisplacementDirection {
+    Forward = 1,
+    Backward = -1,
+    None = 0,
+}
+
 export interface Displacement {
-    direction: Direction,
+    direction: DisplacementDirection,
     offset: number,
 }
 
 export const emptyDisplacement: () => Displacement = () => ({
-    direction: Direction.None,
+    direction: DisplacementDirection.None,
     offset: 0,
 })
