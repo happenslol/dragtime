@@ -101,6 +101,8 @@ export class Sortable {
     }
 
     startDragging(item: DraggableItem, pos: Position): void {
+        if (this.state !== SortableState.Idle) return
+
         this.state = SortableState.Dragging
         this.bindWindowEvents()
         this.bodyRef.classList.add(DtimeClass.BodyDragging)
@@ -108,6 +110,11 @@ export class Sortable {
         this.draggingItem = item
         item.setPosition({ x: item.bounds.left, y: item.bounds.top })
         item.state = DraggableState.Dragging
+
+        this.elements.forEach(it => {
+            if (it == this.draggingItem) return
+            it.ref.classList.add(DtimeClass.SteppingAside)
+        })
 
         this.placeholder = new Placeholder(item)
         this.draggingIndexOffset = 0
@@ -173,6 +180,7 @@ export class Sortable {
             requestAnimationFrame(() => {
                 this.elements.forEach(it => {
                     it.calculateDimensions()
+                    it.ref.classList.remove(DtimeClass.SteppingAside)
                 })
             })
         }
