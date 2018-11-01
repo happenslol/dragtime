@@ -1,9 +1,12 @@
 import { Sortable } from '../index'
 
-const horizontalList = <HTMLElement>document.querySelector(
-    '.list--horizontal',
-)
+window.addEventListener('load', () => {
+    const horizontalList = <HTMLCollection>document.getElementsByClassName(
+        'list--horizontal',
+    )
 
-const horizontalSortable= new Sortable(
-    horizontalList,
-)
+    let item = horizontalList.item(0)
+    if (item !== null) {
+        const horizontalSortable = new Sortable(item as HTMLElement)
+    }
+})

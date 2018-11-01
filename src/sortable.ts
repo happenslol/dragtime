@@ -129,87 +129,100 @@ export class Sortable {
     }
 
     stopDragging(): void {
-        if (!this.draggingItem) {
-            console.error("No dragging item on stop dragging")
-            return
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on stop dragging")
 
         if (this.draggingIndexOffset !== 0) {
-            const draggedToIndex = this.draggingItem.index + this.draggingIndexOffset
             const insertParent = this.draggingItem.ref.parentNode
-            if (!insertParent) {
-                console.error("No parent node on stop dragging")
-                return
-            }
+            if (!insertParent)
+                throw new Error("No parent node on stop dragging")
+
+            const draggedToIndex = this.draggingItem.index + this.draggingIndexOffset
+            const draggedToElement = this.elements[draggedToIndex]
+            if (!draggedToElement)
+                throw new Error("Dragged to element not found on stop dragging")
 
             if (this.draggingIndexOffset > 0) {
-                const itemToInsertBefore = this.elements[draggedToIndex + 1]
                 insertParent.insertBefore(
                     this.draggingItem.ref,
-                    itemToInsertBefore.ref,
+                    draggedToElement.ref.nextSibling,
                 )
-
-                const reorderFrom = this.draggingItem.index + 1
-                const reorderTo = itemToInsertBefore.index - 1
-                for (let i = reorderFrom; i <= reorderTo; i++)
-                    this.elements[i].index--
-
             } else if (this.draggingIndexOffset < 0) {
-                const itemToInsertBefore = this.elements[draggedToIndex]
                 insertParent.insertBefore(
                     this.draggingItem.ref,
-                    itemToInsertBefore.ref,
+                    draggedToElement.ref,
                 )
-
-                const reorderFrom = itemToInsertBefore.index
-                const reorderTo = this.draggingItem.index - 1
-                for (let i = reorderFrom; i <= reorderTo; i++)
-                    this.elements[i].index++
             }
 
-            this.draggingItem.index = this.draggingItem.index + this.draggingIndexOffset
+            const allElements = Array.from(
+                this.draggingItem.ref.parentElement!.children
+            ).filter(it => {
+                return !it.classList.contains(DtimeClass.Placeholder)
+            })
+
+            this.elements.forEach(it => { it.index = allElements.indexOf(it.ref) })
+            if (this.elements.some(it => it.index === -1))
+                throw new Error("Element not found in parent")
 
             this.elements.sort(({ index: a }, { index: b }) => {
                 if (a > b) return 1
                 if (a < b) return -1
 
-                console.error('Found same index twice')
-                return 0
+                throw new Error("Found same index twice")
             })
+
+            console.dir(this.elements)
+
+            this.draggingItem.state = DraggableState.Idle
+            this.draggingItem = undefined
+
+            this.state = SortableState.Idle
+            this.unbindWindowEvents()
+            this.bodyRef.classList.remove(DtimeClass.BodyDragging)
+
+            this.draggingIndexOffset = 0
+
+            if (!this.placeholder)
+                throw new Error("No placeholder on stop dragging")
+
+            this.placeholder.destroy()
+            this.placeholder = undefined
 
             requestAnimationFrame(() => {
                 this.elements.forEach(it => {
-                    it.calculateDimensions()
+                    this.resetElements()
                     it.ref.classList.remove(DtimeClass.SteppingAside)
+
+                    requestAnimationFrame(() => {
+                        it.calculateDimensions()
+                    })
                 })
             })
+        } else {
+            this.draggingItem.state = DraggableState.Idle
+            this.draggingItem = undefined
+
+            this.state = SortableState.Idle
+            this.unbindWindowEvents()
+            this.bodyRef.classList.remove(DtimeClass.BodyDragging)
+
+            this.draggingIndexOffset = 0
+
+            if (!this.placeholder)
+                throw new Error("No placeholder on stop dragging")
+
+            this.placeholder.destroy()
+            this.placeholder = undefined
+
+            requestAnimationFrame(() => {
+                this.resetElements()
+            })
         }
-
-        this.draggingItem.state = DraggableState.Idle
-        this.draggingItem = undefined
-
-        this.state = SortableState.Idle
-        this.unbindWindowEvents()
-        this.bodyRef.classList.remove(DtimeClass.BodyDragging)
-
-        this.draggingIndexOffset = 0
-
-        if (!this.placeholder) {
-            console.error("No placeholder on stop dragging")
-            return
-        }
-
-        this.placeholder.destroy()
-        this.placeholder = undefined
-
-        this.resetElements()
     }
 
     continueDragging(pos: Position): void {
-        if (!this.draggingItem) {
-            console.log("No dragging item on continue dragging")
-            return
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on continue dragging")
 
         const itemPos: Position = {
             x: pos.x - this.clickOffset.x,
@@ -267,52 +280,28 @@ export class Sortable {
         })
     }
 
-    displaceItems(oldOffset: number, newOffset: number): void {
-        if (!this.draggingItem) {
-            console.error("Tried to displace items without dragging item")
-            return
-        }
+    displaceItems(_oldOffset: number, newOffset: number): void {
+        if (!this.draggingItem)
+            throw new Error("Tried to displace items without dragging item")
 
-        const oldIndex = this.draggingItem.index + oldOffset
         const newIndex = this.draggingItem.index + newOffset
 
-        // TODO: Rewrite this to be simpler and more consistens with
-        // drags across 0
-        if (newOffset > 0) {
-            // Moving right of 0
-            if (oldOffset < newOffset) {
-                // fowards
-                for (let i = oldIndex + 1; i <= newIndex; i++)
-                    this.elements[i].setDisplacement({
-                        direction: DisplacementDirection.Backward,
-                        offset: this.draggingItem.marginBounds.width,
-                    })
+        this.elements.forEach(it => {
+            if (it.index === this.draggingItem!.index) return
 
-            } else if (oldOffset > newOffset) {
-                // backwards
-                for (let i = oldIndex; i > newIndex; i--)
-                    this.elements[i].setDisplacement(emptyDisplacement())
-            }
-
-        } else if (newOffset < 0) {
-            // Moving left of 0
-            if (oldOffset < newOffset) {
-                // fowards
-                for (let i = oldIndex; i < newIndex; i++)
-                    this.elements[i].setDisplacement(emptyDisplacement())
-
-            } else if (oldOffset > newOffset) {
-                // backwards
-                for (let i = oldIndex - 1; i >= newIndex; i--)
-                    this.elements[i].setDisplacement({
-                        direction: DisplacementDirection.Forward,
-                        offset: this.draggingItem.marginBounds.width,
-                    })
-            }
-
-        } else {
-            this.resetElements()
-        }
+            if (it.index < this.draggingItem!.index && newIndex <= it.index)
+                it.setDisplacement({
+                    direction: DisplacementDirection.Forward,
+                    offset: this.draggingItem!.marginBounds.width,
+                })
+            else if (it.index > this.draggingItem!.index && newIndex >= it.index)
+                it.setDisplacement({
+                    direction: DisplacementDirection.Backward,
+                    offset: this.draggingItem!.marginBounds.width,
+                })
+            else
+                it.setDisplacement(emptyDisplacement())
+        })
     }
 
     onMouseDown(ev: MouseEvent): void {}
@@ -343,10 +332,8 @@ export class Sortable {
     }
 
     calculateNewLimits(pos: Position): void {
-        if (!this.draggingItem) {
-            console.error("No dragging item on limit calculation")
-            return
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on limit calculation")
 
         this.draggingLimits = []
 
@@ -369,10 +356,8 @@ export class Sortable {
     }
 
     findNewDraggingIndex(pos: Position): number {
-        if (!this.draggingItem) {
-            console.error("No dragging item on find new index")
-            return 0
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on find new index")
 
         // NOTE: If no new index is found, the old one is returned
         // TODO: Implement this for vertical/grid lists
@@ -403,10 +388,8 @@ export class Sortable {
     }
 
     private isInSortableBounds(pos: Position): boolean {
-        if (!this.draggingItem) {
-            console.error("No dragging item on is in sortable bounds")
-            return true
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on is in sortable bounds")
 
         const x1 = this.bounds.left
         const x2 = this.bounds.left + this.bounds.width
@@ -421,10 +404,8 @@ export class Sortable {
     }
 
     private isLimitExceeded(limit: Limit, pos: Position): boolean {
-        if (!this.draggingItem) {
-            console.error("No dragging item on is limit exceeded")
-            return false
-        }
+        if (!this.draggingItem)
+            throw new Error("No dragging item on is limit exceeded")
 
         switch (limit.direction) {
             case Direction.Up:
@@ -459,10 +440,8 @@ export class Sortable {
                 direction,
                 offset: marginBounds.left,
             }
-            case Direction.None: {
-                console.error('Cant get limit with no direction')
-                return { direction, offset: 0 }
-            }
+            case Direction.None:
+                throw new Error('Cant get limit with no direction')
         }
     }
 
