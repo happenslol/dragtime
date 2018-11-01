@@ -2,18 +2,18 @@ import {
     DtimeClass,
     ZIndex,
     Position,
-    Size,
     Margins,
     Bounds,
     Displacement,
-    Direction,
 
     emptyBounds,
     emptyMargins,
     emptyPosition,
     emptyDisplacement,
     DisplacementDirection,
-} from './types'
+
+    ListType,
+} from "./types"
 
 export enum DraggableState {
     Idle,
@@ -52,6 +52,7 @@ export class DraggableItem {
     constructor(
         public ref: HTMLElement,
         public index: number,
+        public listType: ListType,
 
         onMouseDown: (
             item: DraggableItem,
@@ -60,7 +61,7 @@ export class DraggableItem {
     ) {
         this.ref.classList.add(DtimeClass.Handle)
         this.ref.addEventListener(
-            'mousedown',
+            "mousedown",
             (ev: MouseEvent) => onMouseDown(this, ev),
         )
 
@@ -98,7 +99,7 @@ export class DraggableItem {
 
     removeStyle(): void {
         requestAnimationFrame(() => {
-            this.ref.removeAttribute('style')
+            this.ref.removeAttribute("style")
         })
     }
 
@@ -135,32 +136,41 @@ export class DraggableItem {
 
     private getDraggingStyle(pos: Position = { x: 0, y: 0 }): DraggableStyle {
         const result: DraggableStyle = {
-            position: 'fixed',
-            boxSizing: 'border-box',
+            position: "fixed",
+            boxSizing: "border-box",
             zIndex: ZIndex.Dragging,
             width: 100,
             height: 100,
             top: pos.y,
             left: pos.x,
             margin: 0,
-            pointerEvents: 'none',
-            transition: 'none',
-            transform: '',
+            pointerEvents: "none",
+            transition: "none",
+            transform: "",
         }
 
         return result
     }
 
     private getDisplacementStyle({ direction, offset }: Displacement): DisplacementStyle {
-        // TODO: Implement this for vertical/grid lists
         const offsetString = direction === DisplacementDirection.Forward
             ? `${offset}`
             : `-${offset}`
 
-        const result: DisplacementStyle = {
-            transform: `translateX(${offsetString}px)`,
+        switch (this.listType) {
+            case ListType.Horizontal: return {
+                transform: `translateX(${offsetString}px)`,
+            }
+            case ListType.Vertical: return {
+                transform: `translateY(${offsetString}px)`,
+            }
+            // TODO: Grid list transforms
+            case ListType.GridHorizontal: return {
+                transform: "",
+            }
+            case ListType.GridVertical: return {
+                transform: "",
+            }
         }
-
-        return result
     }
 }

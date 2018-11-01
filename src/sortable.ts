@@ -1,6 +1,5 @@
-import { DraggableItem, DraggableState } from './draggable-item'
-import { Placeholder } from './placeholder'
-import { noop } from './util'
+import { DraggableItem, DraggableState } from "./draggable-item"
+import { Placeholder } from "./placeholder"
 import {
     WindowEvent,
     DtimeClass,
@@ -13,9 +12,9 @@ import {
     emptyBounds,
     emptyMargins,
     DisplacementDirection,
-    Displacement,
     emptyDisplacement,
-} from './types'
+    ListType,
+} from "./types"
 
 export enum SortableState {
     Idle,
@@ -24,9 +23,19 @@ export enum SortableState {
     Dropping,
 }
 
+export interface SortableOptions {
+    listType?: ListType,
+    childSelector?: string,
+}
+
+const DefaultOptions: SortableOptions = {
+    listType: ListType.Horizontal,
+    childSelector: undefined,
+}
+
 export class Sortable {
     private elements: Array<DraggableItem> = []
-    private bodyRef: HTMLElement = <HTMLElement>document.querySelector('body')
+    private bodyRef: HTMLElement = <HTMLElement>document.querySelector("body")
 
     state: SortableState = SortableState.Idle
 
@@ -40,26 +49,33 @@ export class Sortable {
     private margins: Margins = emptyMargins()
     private wasOutOfBounds: boolean = false
 
+    private listType: ListType
+
     onMouseDownBinding: (ev: MouseEvent) => void
     onMouseUpBinding: (ev: MouseEvent) => void
     onMouseMoveBinding: (ev: MouseEvent) => void
 
     constructor(
         private ref: HTMLElement,
-        childSelector?: string,
+        options: SortableOptions = DefaultOptions,
     ) {
         this.onMouseDownBinding = this.onMouseDown.bind(this)
         this.onMouseUpBinding = this.onMouseUp.bind(this)
         this.onMouseMoveBinding = this.onMouseMove.bind(this)
 
-        if (childSelector) {
+        this.listType = options.listType !== undefined && options.listType !== null
+            ? options.listType
+            : DefaultOptions.listType!
+
+        if (options.childSelector) {
             // TODO: make sure these are all children and don't
             // contain each other
-            const children = ref.querySelectorAll(childSelector)
+            const children = ref.querySelectorAll(options.childSelector)
 
             for (let i = 0; i < children.length; i++) {
                 const child = new DraggableItem(
                     <HTMLElement>children[i], i,
+                    this.listType,
                     this.onChildMouseDown.bind(this),
                 )
 
@@ -69,6 +85,7 @@ export class Sortable {
             for (let i = 0; i < ref.children.length; i++) {
                 const child = new DraggableItem(
                     <HTMLElement>ref.children[i], i,
+                    this.listType,
                     this.onChildMouseDown.bind(this),
                 )
 
@@ -103,29 +120,33 @@ export class Sortable {
     startDragging(item: DraggableItem, pos: Position): void {
         if (this.state !== SortableState.Idle) return
 
-        this.state = SortableState.Dragging
-        this.bindWindowEvents()
-        this.bodyRef.classList.add(DtimeClass.BodyDragging)
+        requestAnimationFrame(() => {
+            this.elements.forEach(it => it.calculateDimensions())
 
-        this.draggingItem = item
-        item.setPosition({ x: item.bounds.left, y: item.bounds.top })
-        item.state = DraggableState.Dragging
+            this.state = SortableState.Dragging
+            this.bindWindowEvents()
+            this.bodyRef.classList.add(DtimeClass.BodyDragging)
 
-        this.elements.forEach(it => {
-            if (it == this.draggingItem) return
-            it.ref.classList.add(DtimeClass.SteppingAside)
+            this.draggingItem = item
+            item.setPosition({ x: item.bounds.left, y: item.bounds.top })
+            item.state = DraggableState.Dragging
+
+            this.elements.forEach(it => {
+                if (it == this.draggingItem) return
+                it.ref.classList.add(DtimeClass.SteppingAside)
+            })
+
+            this.placeholder = new Placeholder(item)
+            this.draggingIndexOffset = 0
+
+            this.wasOutOfBounds = false
+
+            const diffX = pos.x - item.bounds.left
+            const diffY = pos.y - item.bounds.top
+
+            this.clickOffset = { x: diffX, y: diffY }
+            this.calculateNewLimits(pos)
         })
-
-        this.placeholder = new Placeholder(item)
-        this.draggingIndexOffset = 0
-
-        this.wasOutOfBounds = false
-
-        const diffX = pos.x - item.bounds.left
-        const diffY = pos.y - item.bounds.top
-
-        this.clickOffset = { x: diffX, y: diffY }
-        this.calculateNewLimits(pos)
     }
 
     stopDragging(): void {
@@ -154,11 +175,9 @@ export class Sortable {
                 )
             }
 
-            const allElements = Array.from(
-                this.draggingItem.ref.parentElement!.children
-            ).filter(it => {
-                return !it.classList.contains(DtimeClass.Placeholder)
-            })
+            const allElements = Array
+                .from(this.draggingItem.ref.parentElement!.children)
+                .filter(it => !it.classList.contains(DtimeClass.Placeholder))
 
             this.elements.forEach(it => { it.index = allElements.indexOf(it.ref) })
             if (this.elements.some(it => it.index === -1))
@@ -170,8 +189,6 @@ export class Sortable {
 
                 throw new Error("Found same index twice")
             })
-
-            console.dir(this.elements)
 
             this.draggingItem.state = DraggableState.Idle
             this.draggingItem = undefined
@@ -228,6 +245,7 @@ export class Sortable {
             x: pos.x - this.clickOffset.x,
             y: pos.y - this.clickOffset.y,
         }
+
         this.draggingItem.setPosition(itemPos)
 
         const itemCenter: Position = {
@@ -320,15 +338,15 @@ export class Sortable {
     }
 
     bindWindowEvents(): void {
-        this.bindEvent('mousedown', this.onMouseDownBinding)
-        this.bindEvent('mouseup', this.onMouseUpBinding)
-        this.bindEvent('mousemove', this.onMouseMoveBinding)
+        this.bindEvent("mousedown", this.onMouseDownBinding)
+        this.bindEvent("mouseup", this.onMouseUpBinding)
+        this.bindEvent("mousemove", this.onMouseMoveBinding)
     }
 
     unbindWindowEvents(): void {
-        this.unbindEvent('mousedown', this.onMouseDownBinding)
-        this.unbindEvent('mouseup', this.onMouseUpBinding)
-        this.unbindEvent('mousemove', this.onMouseMoveBinding)
+        this.unbindEvent("mousedown", this.onMouseDownBinding)
+        this.unbindEvent("mouseup", this.onMouseUpBinding)
+        this.unbindEvent("mousemove", this.onMouseMoveBinding)
     }
 
     calculateNewLimits(pos: Position): void {
@@ -337,7 +355,6 @@ export class Sortable {
 
         this.draggingLimits = []
 
-        // TODO: Implement this for vertical and grid lists
         const currentIndex = this.draggingItem.index + this.draggingIndexOffset
 
         const previousElementIndex = currentIndex - 1
@@ -346,13 +363,37 @@ export class Sortable {
         const nextElementIndex = currentIndex + 1
         const nextElement = this.elements[nextElementIndex]
 
-        if (nextElement) this.draggingLimits.push(
-            this.limitFromElement(Direction.Right, nextElement),
-        )
+        if (nextElement)
+            switch (this.listType) {
+                case ListType.Horizontal:
+                    this.draggingLimits.push(
+                        this.limitFromElement(Direction.Right, nextElement),
+                    )
+                    break
+                case ListType.Vertical:
+                    this.draggingLimits.push(
+                        this.limitFromElement(Direction.Down, nextElement),
+                    )
+                    break
+                default: // TODO: grid list styles
+                    break
+            }
 
-        if (previousElement) this.draggingLimits.push(
-            this.limitFromElement(Direction.Left, previousElement),
-        )
+        if (previousElement)
+            switch (this.listType) {
+                case ListType.Horizontal:
+                    this.draggingLimits.push(
+                        this.limitFromElement(Direction.Left, previousElement),
+                    )
+                    break
+                case ListType.Vertical:
+                    this.draggingLimits.push(
+                        this.limitFromElement(Direction.Up, previousElement),
+                    )
+                    break
+                default: // TODO: grid list styles
+                    break
+            }
     }
 
     findNewDraggingIndex(pos: Position): number {
@@ -366,14 +407,33 @@ export class Sortable {
         for (let i = 0; i < this.elements.length; i++) {
             const it = this.elements[i]
 
-            const x1 = it.marginBounds.left
-            const x2 = it.marginBounds.left + it.marginBounds.width
+            switch (this.listType) {
+                case ListType.Horizontal: {
+                    const x1 = it.marginBounds.left
+                    const x2 = it.marginBounds.left + it.marginBounds.width
 
-            if (pos.x >= x1 && pos.x <= x2) {
-                // Found element!
-                const draggingIndex = this.draggingItem.index
-                result = it.index - draggingIndex
-                break
+                    if (pos.x >= x1 && pos.x <= x2) {
+                        // Found element!
+                        const draggingIndex = this.draggingItem.index
+                        result = it.index - draggingIndex
+                        break
+                    }
+                    break
+                }
+                case ListType.Vertical: {
+                    const y1 = it.marginBounds.top
+                    const y2 = it.marginBounds.top + it.marginBounds.height
+
+                    if (pos.y >= y1 && pos.y <= y2) {
+                        // Found element!
+                        const draggingIndex = this.draggingItem.index
+                        result = it.index - draggingIndex
+                        break
+                    }
+                    break
+                }
+                default: // TODO: grid list styles
+                    break
             }
         }
 
@@ -409,9 +469,9 @@ export class Sortable {
 
         switch (limit.direction) {
             case Direction.Up:
-                return pos.y > limit.offset
-            case Direction.Down:
                 return pos.y < limit.offset
+            case Direction.Down:
+                return pos.y > limit.offset
             case Direction.Left:
                 return pos.x < limit.offset
             case Direction.Right:
@@ -441,7 +501,7 @@ export class Sortable {
                 offset: marginBounds.left,
             }
             case Direction.None:
-                throw new Error('Cant get limit with no direction')
+                throw new Error("Cant get limit with no direction")
         }
     }
 

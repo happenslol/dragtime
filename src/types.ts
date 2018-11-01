@@ -8,6 +8,13 @@ export enum DtimeClass {
     BodyDragging = "dtime-dragging",
 }
 
+export enum ListType {
+    Vertical,
+    Horizontal,
+    GridVertical,
+    GridHorizontal,
+}
+
 export enum ZIndex {
     Dragging = 5000,
     Dropping = 4500,
