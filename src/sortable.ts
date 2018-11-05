@@ -15,6 +15,7 @@ import {
     emptyDisplacement,
     ListType,
 } from "./types"
+import { Animation } from "./animate"
 
 export enum SortableState {
     Idle,
@@ -325,7 +326,13 @@ export class Sortable {
     onMouseDown(ev: MouseEvent): void {}
 
     onMouseUp(ev: MouseEvent): void {
-        this.stopDragging()
+        const snapAnimation = new Animation(
+            this.draggingItem!,
+            this.placeholder!,
+            () => this.stopDragging(),
+        )
+
+        snapAnimation.run()
     }
 
     onMouseMove(ev: MouseEvent): void {
