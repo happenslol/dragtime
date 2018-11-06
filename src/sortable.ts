@@ -150,9 +150,16 @@ export class Sortable {
         })
     }
 
-    stopDragging(): void {
+    private moveItemsAfterDrag(): void {
         if (!this.draggingItem)
             throw new Error("No dragging item on stop dragging")
+
+        if (!this.placeholder)
+            throw new Error("No placeholder on stop dragging")
+
+        this.elements.forEach(it => {
+            it.ref.classList.remove(DtimeClass.SteppingAside)
+        })
 
         if (this.draggingIndexOffset !== 0) {
             const insertParent = this.draggingItem.ref.parentNode
@@ -176,11 +183,19 @@ export class Sortable {
                 )
             }
 
+            insertParent.insertBefore(
+                this.placeholder.ref,
+                this.draggingItem.ref,
+            )
+
             const allElements = Array
                 .from(this.draggingItem.ref.parentElement!.children)
                 .filter(it => !it.classList.contains(DtimeClass.Placeholder))
 
-            this.elements.forEach(it => { it.index = allElements.indexOf(it.ref) })
+            this.elements.forEach(it => {
+                it.index = allElements.indexOf(it.ref)
+            })
+
             if (this.elements.some(it => it.index === -1))
                 throw new Error("Element not found in parent")
 
@@ -190,55 +205,40 @@ export class Sortable {
 
                 throw new Error("Found same index twice")
             })
-
-            this.draggingItem.state = DraggableState.Idle
-            this.draggingItem = undefined
-
-            this.state = SortableState.Idle
-            this.unbindWindowEvents()
-            this.bodyRef.classList.remove(DtimeClass.BodyDragging)
-
-            this.draggingIndexOffset = 0
-
-            if (!this.placeholder)
-                throw new Error("No placeholder on stop dragging")
-
-            this.placeholder.destroy()
-            this.placeholder = undefined
-
-            requestAnimationFrame(() => {
-                this.elements.forEach(it => {
-                    this.resetElements()
-                    it.ref.classList.remove(DtimeClass.SteppingAside)
-
-                    requestAnimationFrame(() => {
-                        it.calculateDimensions()
-                    })
-                })
-            })
-        } else {
-            this.draggingItem.state = DraggableState.Idle
-            this.draggingItem = undefined
-
-            this.state = SortableState.Idle
-            this.unbindWindowEvents()
-            this.bodyRef.classList.remove(DtimeClass.BodyDragging)
-
-            this.draggingIndexOffset = 0
-
-            if (!this.placeholder)
-                throw new Error("No placeholder on stop dragging")
-
-            this.placeholder.destroy()
-            this.placeholder = undefined
-
-            requestAnimationFrame(() => {
-                this.resetElements()
-            })
         }
+
+        this.resetElements()
     }
 
-    continueDragging(pos: Position): void {
+    private stopDragging(): void {
+        this.moveItemsAfterDrag()
+        this.unbindWindowEvents()
+
+        this.bodyRef.classList.remove(DtimeClass.BodyDragging)
+        this.draggingIndexOffset = 0
+
+        requestAnimationFrame(() => {
+            const snapAnimation = new Animation(
+                this.draggingItem!,
+                this.placeholder!,
+                () => {
+                    this.draggingItem!.state = DraggableState.Idle
+                    this.placeholder!.destroy()
+                    this.draggingItem!.removeStyle()
+                    this.draggingItem = undefined
+                    this.placeholder = undefined
+
+                    requestAnimationFrame(() => {
+                        this.state = SortableState.Idle
+                    })
+                },
+            )
+
+            snapAnimation.run()
+        })
+    }
+
+    private continueDragging(pos: Position): void {
         if (!this.draggingItem)
             throw new Error("No dragging item on continue dragging")
 
@@ -323,16 +323,10 @@ export class Sortable {
         })
     }
 
-    onMouseDown(ev: MouseEvent): void {}
+    onMouseDown(_ev: MouseEvent): void {}
 
-    onMouseUp(ev: MouseEvent): void {
-        const snapAnimation = new Animation(
-            this.draggingItem!,
-            this.placeholder!,
-            () => this.stopDragging(),
-        )
-
-        snapAnimation.run()
+    onMouseUp(_ev: MouseEvent): void {
+        this.stopDragging()
     }
 
     onMouseMove(ev: MouseEvent): void {
