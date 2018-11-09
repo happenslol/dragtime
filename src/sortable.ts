@@ -8,7 +8,6 @@ import {
     Position,
     Bounds,
     Margins,
-
     emptyBounds,
     emptyMargins,
     DisplacementDirection,
@@ -25,8 +24,8 @@ export enum SortableState {
 }
 
 export interface SortableOptions {
-    listType?: ListType,
-    childSelector?: string,
+    listType?: ListType
+    childSelector?: string
 }
 
 const DefaultOptions: SortableOptions = {
@@ -64,9 +63,10 @@ export class Sortable {
         this.onMouseUpBinding = this.onMouseUp.bind(this)
         this.onMouseMoveBinding = this.onMouseMove.bind(this)
 
-        this.listType = options.listType !== undefined && options.listType !== null
-            ? options.listType
-            : DefaultOptions.listType!
+        this.listType =
+            options.listType !== undefined && options.listType !== null
+                ? options.listType
+                : DefaultOptions.listType!
 
         if (options.childSelector) {
             // TODO: make sure these are all children and don't
@@ -75,7 +75,8 @@ export class Sortable {
 
             for (let i = 0; i < children.length; i++) {
                 const child = new DraggableItem(
-                    <HTMLElement>children[i], i,
+                    <HTMLElement>children[i],
+                    i,
                     this.listType,
                     this.onChildMouseDown.bind(this),
                 )
@@ -85,7 +86,8 @@ export class Sortable {
         } else {
             for (let i = 0; i < ref.children.length; i++) {
                 const child = new DraggableItem(
-                    <HTMLElement>ref.children[i], i,
+                    <HTMLElement>ref.children[i],
+                    i,
                     this.listType,
                     this.onChildMouseDown.bind(this),
                 )
@@ -166,7 +168,8 @@ export class Sortable {
             if (!insertParent)
                 throw new Error("No parent node on stop dragging")
 
-            const draggedToIndex = this.draggingItem.index + this.draggingIndexOffset
+            const draggedToIndex =
+                this.draggingItem.index + this.draggingIndexOffset
             const draggedToElement = this.elements[draggedToIndex]
             if (!draggedToElement)
                 throw new Error("Dragged to element not found on stop dragging")
@@ -188,9 +191,9 @@ export class Sortable {
                 this.draggingItem.ref,
             )
 
-            const allElements = Array
-                .from(this.draggingItem.ref.parentElement!.children)
-                .filter(it => !it.classList.contains(DtimeClass.Placeholder))
+            const allElements = Array.from(
+                this.draggingItem.ref.parentElement!.children,
+            ).filter(it => !it.classList.contains(DtimeClass.Placeholder))
 
             this.elements.forEach(it => {
                 it.index = allElements.indexOf(it.ref)
@@ -251,8 +254,8 @@ export class Sortable {
         this.draggingItem.setPosition(itemPos)
 
         const itemCenter: Position = {
-            x: itemPos.x + (this.draggingItem.bounds.width / 2),
-            y: itemPos.y + (this.draggingItem.bounds.height / 2),
+            x: itemPos.x + this.draggingItem.bounds.width / 2,
+            y: itemPos.y + this.draggingItem.bounds.height / 2,
         }
 
         if (!this.isInSortableBounds(itemCenter)) {
@@ -314,13 +317,15 @@ export class Sortable {
                     direction: DisplacementDirection.Forward,
                     offset: this.draggingItem!.marginBounds.width,
                 })
-            else if (it.index > this.draggingItem!.index && newIndex >= it.index)
+            else if (
+                it.index > this.draggingItem!.index &&
+                newIndex >= it.index
+            )
                 it.setDisplacement({
                     direction: DisplacementDirection.Backward,
                     offset: this.draggingItem!.marginBounds.width,
                 })
-            else
-                it.setDisplacement(emptyDisplacement())
+            else it.setDisplacement(emptyDisplacement())
         })
     }
 
@@ -377,7 +382,8 @@ export class Sortable {
                         this.limitFromElement(Direction.Down, nextElement),
                     )
                     break
-                default: // TODO: grid list styles
+                default:
+                    // TODO: grid list styles
                     break
             }
 
@@ -393,7 +399,8 @@ export class Sortable {
                         this.limitFromElement(Direction.Up, previousElement),
                     )
                     break
-                default: // TODO: grid list styles
+                default:
+                    // TODO: grid list styles
                     break
             }
     }
@@ -434,7 +441,8 @@ export class Sortable {
                     }
                     break
                 }
-                default: // TODO: grid list styles
+                default:
+                    // TODO: grid list styles
                     break
             }
         }
@@ -459,10 +467,7 @@ export class Sortable {
         const y1 = this.bounds.top
         const y2 = this.bounds.top + this.bounds.height
 
-        return (
-            (pos.x >= x1 && pos.x <= x2) &&
-            (pos.y >= y1 && pos.y <= y2)
-        ) 
+        return pos.x >= x1 && pos.x <= x2 && (pos.y >= y1 && pos.y <= y2)
     }
 
     private isLimitExceeded(limit: Limit, pos: Position): boolean {
@@ -483,25 +488,32 @@ export class Sortable {
         return false
     }
 
-    private limitFromElement(direction: Direction, element: DraggableItem): Limit {
+    private limitFromElement(
+        direction: Direction,
+        element: DraggableItem,
+    ): Limit {
         const { marginBounds } = element
         switch (direction) {
-            case Direction.Up: return {
-                direction,
-                offset: marginBounds.top + marginBounds.height,
-            }
-            case Direction.Down: return {
-                direction,
-                offset: marginBounds.top,
-            }
-            case Direction.Left: return {
-                direction,
-                offset: marginBounds.left + marginBounds.width,
-            }
-            case Direction.Right: return {
-                direction,
-                offset: marginBounds.left,
-            }
+            case Direction.Up:
+                return {
+                    direction,
+                    offset: marginBounds.top + marginBounds.height,
+                }
+            case Direction.Down:
+                return {
+                    direction,
+                    offset: marginBounds.top,
+                }
+            case Direction.Left:
+                return {
+                    direction,
+                    offset: marginBounds.left + marginBounds.width,
+                }
+            case Direction.Right:
+                return {
+                    direction,
+                    offset: marginBounds.left,
+                }
             case Direction.None:
                 throw new Error("Cant get limit with no direction")
         }

@@ -8,7 +8,13 @@
     },
     "scripts": {
         "dev": "parcel src/examples/index.html",
-        "build": "microbundle build"
+        "build": "microbundle build",
+        "format": "prettier src/**/*.ts --write"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "pretty-quick --staged"
+        }
     },
     "prettier": {
         "printWidth": 80,
@@ -20,7 +26,10 @@
     "author": "Hilmar Wiegand <me@hwgnd.de>",
     "license": "MIT",
     "devDependencies": {
+        "husky": "^1.1.3",
         "microbundle": "^0.7.0",
-        "parcel-bundler": "^1.10.3"
+        "parcel-bundler": "^1.10.3",
+        "prettier": "^1.15.1",
+        "pretty-quick": "^1.8.0"
     }
 }

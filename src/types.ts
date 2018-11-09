@@ -26,7 +26,8 @@ export interface Position {
 }
 
 export const emptyPosition: () => Position = () => ({
-    x: 0, y: 0,
+    x: 0,
+    y: 0,
 })
 
 export interface Size {
@@ -42,7 +43,10 @@ export interface Margins {
 }
 
 export const emptyMargins: () => Margins = () => ({
-    top: 0, bottom: 0, left: 0, right: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
 })
 
 export type WindowEvent = "mousedown" | "mouseup" | "mousemove"
@@ -68,8 +72,10 @@ export interface Bounds {
 }
 
 export const emptyBounds: () => Bounds = () => ({
-    top: 0, left: 0,
-    width: 0, height: 0,
+    top: 0,
+    left: 0,
+    width: 0,
+    height: 0,
 })
 
 export enum DisplacementDirection {
@@ -79,8 +85,8 @@ export enum DisplacementDirection {
 }
 
 export interface Displacement {
-    direction: DisplacementDirection,
-    offset: number,
+    direction: DisplacementDirection
+    offset: number
 }
 
 export const emptyDisplacement: () => Displacement = () => ({

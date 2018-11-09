@@ -23,8 +23,10 @@ export class Animation {
         const { left: x, top: y } = this.target.ref.getBoundingClientRect()
         this.targetPosition = { x, y }
 
-        const { left: originalX, top: originalY } =
-            this.element.ref.getBoundingClientRect()
+        const {
+            left: originalX,
+            top: originalY,
+        } = this.element.ref.getBoundingClientRect()
 
         const distX = this.targetPosition.x - originalX
         const distY = this.targetPosition.y - originalY
@@ -43,8 +45,7 @@ export class Animation {
     }
 
     private tick(dt: number): void {
-        if (this.previous > 0)
-            this.elapsed += (dt - this.previous)
+        if (this.previous > 0) this.elapsed += dt - this.previous
 
         this.previous = dt
 
@@ -52,11 +53,15 @@ export class Animation {
         const progress = this.makeEaseOut(this.timing)(fraction)
 
         const nextPosition = emptyPosition()
-        nextPosition.x = this.originalPosition.x + (this.originalOffset.x * progress)
-        nextPosition.y = this.originalPosition.y + (this.originalOffset.y * progress)
+        nextPosition.x =
+            this.originalPosition.x + this.originalOffset.x * progress
+        nextPosition.y =
+            this.originalPosition.y + this.originalOffset.y * progress
 
-        const reachedX = Math.abs(nextPosition.x - this.targetPosition.x) < threshold
-        const reachedY = Math.abs(nextPosition.y - this.targetPosition.y) < threshold
+        const reachedX =
+            Math.abs(nextPosition.x - this.targetPosition.x) < threshold
+        const reachedY =
+            Math.abs(nextPosition.y - this.targetPosition.y) < threshold
 
         const newPosition = emptyPosition()
         newPosition.x = reachedX ? this.targetPosition.x : nextPosition.x
@@ -78,7 +83,9 @@ export class Animation {
         return Math.pow(fraction, 5)
     }
 
-    private makeEaseOut(timing: (fr: number) => number): (fr: number) => number {
+    private makeEaseOut(
+        timing: (fr: number) => number,
+    ): (fr: number) => number {
         return (fr: number) => 1 - timing(1 - fr)
     }
 }

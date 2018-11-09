@@ -5,13 +5,11 @@ import {
     Margins,
     Bounds,
     Displacement,
-
     emptyBounds,
     emptyMargins,
     emptyPosition,
     emptyDisplacement,
     DisplacementDirection,
-
     ListType,
 } from "./types"
 
@@ -53,16 +51,11 @@ export class DraggableItem {
         public ref: HTMLElement,
         public index: number,
         public listType: ListType,
-
-        onMouseDown: (
-            item: DraggableItem,
-            ev: MouseEvent,
-        ) => void,
+        onMouseDown: (item: DraggableItem, ev: MouseEvent) => void,
     ) {
         this.ref.classList.add(DtimeClass.Handle)
-        this.ref.addEventListener(
-            "mousedown",
-            (ev: MouseEvent) => onMouseDown(this, ev),
+        this.ref.addEventListener("mousedown", (ev: MouseEvent) =>
+            onMouseDown(this, ev),
         )
 
         this.calculateDimensions()
@@ -81,8 +74,8 @@ export class DraggableItem {
         this.bounds = { top, left, width, height }
 
         this.center = {
-            x: left + (width / 2),
-            y: top + (height / 2),
+            x: left + width / 2,
+            y: top + height / 2,
         }
 
         this.marginBounds = {
@@ -113,7 +106,8 @@ export class DraggableItem {
         if (
             this.displacement.direction === displacement.direction &&
             this.displacement.offset === displacement.offset
-        ) return
+        )
+            return
 
         this.displacement = displacement
 
@@ -152,25 +146,33 @@ export class DraggableItem {
         return result
     }
 
-    private getDisplacementStyle({ direction, offset }: Displacement): DisplacementStyle {
-        const offsetString = direction === DisplacementDirection.Forward
-            ? `${offset}`
-            : `-${offset}`
+    private getDisplacementStyle({
+        direction,
+        offset,
+    }: Displacement): DisplacementStyle {
+        const offsetString =
+            direction === DisplacementDirection.Forward
+                ? `${offset}`
+                : `-${offset}`
 
         switch (this.listType) {
-            case ListType.Horizontal: return {
-                transform: `translateX(${offsetString}px)`,
-            }
-            case ListType.Vertical: return {
-                transform: `translateY(${offsetString}px)`,
-            }
+            case ListType.Horizontal:
+                return {
+                    transform: `translateX(${offsetString}px)`,
+                }
+            case ListType.Vertical:
+                return {
+                    transform: `translateY(${offsetString}px)`,
+                }
             // TODO: Grid list transforms
-            case ListType.GridHorizontal: return {
-                transform: "",
-            }
-            case ListType.GridVertical: return {
-                transform: "",
-            }
+            case ListType.GridHorizontal:
+                return {
+                    transform: "",
+                }
+            case ListType.GridVertical:
+                return {
+                    transform: "",
+                }
         }
     }
 }
