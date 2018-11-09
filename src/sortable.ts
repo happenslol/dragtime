@@ -223,12 +223,13 @@ export class Sortable {
                 this.placeholder!,
                 () => {
                     this.draggingItem!.state = DraggableState.Idle
-                    this.placeholder!.destroy()
                     this.draggingItem!.removeStyle()
                     this.draggingItem = undefined
-                    this.placeholder = undefined
 
                     requestAnimationFrame(() => {
+                        this.placeholder!.destroy()
+                        this.placeholder = undefined
+
                         this.state = SortableState.Idle
                     })
                 },
