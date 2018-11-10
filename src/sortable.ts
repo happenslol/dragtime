@@ -51,50 +51,34 @@ export class Sortable {
 
     private listType: ListType
 
-    onMouseDownBinding: (ev: MouseEvent) => void
-    onMouseUpBinding: (ev: MouseEvent) => void
-    onMouseMoveBinding: (ev: MouseEvent) => void
+    onMouseDownBinding = this.onMouseDown.bind(this)
+    onMouseUpBinding = this.onMouseUp.bind(this)
+    onMouseMoveBinding = this.onMouseMove.bind(this)
 
     constructor(
         private ref: HTMLElement,
         options: SortableOptions = DefaultOptions,
     ) {
-        this.onMouseDownBinding = this.onMouseDown.bind(this)
-        this.onMouseUpBinding = this.onMouseUp.bind(this)
-        this.onMouseMoveBinding = this.onMouseMove.bind(this)
-
         this.listType =
             options.listType !== undefined && options.listType !== null
                 ? options.listType
                 : DefaultOptions.listType!
 
-        if (options.childSelector) {
-            // TODO: make sure these are all children and don't
-            // contain each other
-            const children = ref.querySelectorAll(options.childSelector)
+        const children = Array.from(
+            options.childSelector
+                ? ref.querySelectorAll(options.childSelector)
+                : ref.children,
+        )
 
-            for (let i = 0; i < children.length; i++) {
-                const child = new DraggableItem(
-                    <HTMLElement>children[i],
-                    i,
+        this.elements = children.map(
+            (it, index) =>
+                new DraggableItem(
+                    it as HTMLElement,
+                    index,
                     this.listType,
                     this.onChildMouseDown.bind(this),
-                )
-
-                this.elements.push(child)
-            }
-        } else {
-            for (let i = 0; i < ref.children.length; i++) {
-                const child = new DraggableItem(
-                    <HTMLElement>ref.children[i],
-                    i,
-                    this.listType,
-                    this.onChildMouseDown.bind(this),
-                )
-
-                this.elements.push(child)
-            }
-        }
+                ),
+        )
 
         this.calculateDimensions()
     }
@@ -114,6 +98,8 @@ export class Sortable {
 
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         // TODO: can we start dragging, sloppy click detection etc.
+        if (this.state !== SortableState.Idle) return
+
         const { clientX: x, clientY: y } = ev
         const pos: Position = { x, y }
 
@@ -121,7 +107,8 @@ export class Sortable {
     }
 
     startDragging(item: DraggableItem, pos: Position): void {
-        if (this.state !== SortableState.Idle) return
+        if (this.state !== SortableState.Idle)
+            throw new Error("Tried to drag while in idle")
 
         requestAnimationFrame(() => {
             this.elements.forEach(it => it.calculateDimensions())
@@ -148,7 +135,7 @@ export class Sortable {
             const diffY = pos.y - item.bounds.top
 
             this.clickOffset = { x: diffX, y: diffY }
-            this.calculateNewLimits(pos)
+            this.calculateNewLimits()
         })
     }
 
@@ -214,8 +201,8 @@ export class Sortable {
     }
 
     private stopDragging(): void {
-        this.moveItemsAfterDrag()
         this.unbindWindowEvents()
+        this.moveItemsAfterDrag()
 
         this.bodyRef.classList.remove(DtimeClass.BodyDragging)
         this.draggingIndexOffset = 0
@@ -285,7 +272,7 @@ export class Sortable {
             newOffset = this.findNewDraggingIndex(itemCenter)
 
             this.draggingIndexOffset = newOffset
-            this.calculateNewLimits(itemCenter)
+            this.calculateNewLimits()
             this.displaceItems(0, newOffset)
 
             return
@@ -297,7 +284,7 @@ export class Sortable {
                 const oldOffset = this.draggingIndexOffset
 
                 this.draggingIndexOffset = newOffset
-                this.calculateNewLimits(itemCenter)
+                this.calculateNewLimits()
                 this.displaceItems(oldOffset, newOffset)
             }
         })
@@ -344,31 +331,27 @@ export class Sortable {
         this.continueDragging(pos)
     }
 
-    bindWindowEvents(): void {
+    private bindWindowEvents(): void {
         this.bindEvent("mousedown", this.onMouseDownBinding)
         this.bindEvent("mouseup", this.onMouseUpBinding)
         this.bindEvent("mousemove", this.onMouseMoveBinding)
     }
 
-    unbindWindowEvents(): void {
+    private unbindWindowEvents(): void {
         this.unbindEvent("mousedown", this.onMouseDownBinding)
         this.unbindEvent("mouseup", this.onMouseUpBinding)
         this.unbindEvent("mousemove", this.onMouseMoveBinding)
     }
 
-    calculateNewLimits(pos: Position): void {
+    private calculateNewLimits(): void {
         if (!this.draggingItem)
             throw new Error("No dragging item on limit calculation")
 
         this.draggingLimits = []
 
         const currentIndex = this.draggingItem.index + this.draggingIndexOffset
-
-        const previousElementIndex = currentIndex - 1
-        const previousElement = this.elements[previousElementIndex]
-
-        const nextElementIndex = currentIndex + 1
-        const nextElement = this.elements[nextElementIndex]
+        const previousElement = this.elements[currentIndex - 1]
+        const nextElement = this.elements[currentIndex + 1]
 
         if (nextElement)
             switch (this.listType) {
@@ -405,7 +388,7 @@ export class Sortable {
             }
     }
 
-    findNewDraggingIndex(pos: Position): number {
+    private findNewDraggingIndex(pos: Position): number {
         if (!this.draggingItem)
             throw new Error("No dragging item on find new index")
 
@@ -450,17 +433,13 @@ export class Sortable {
         return result
     }
 
-    // NOTE: This NEVER resets the dragging item!
-    resetElements(): void {
+    private resetElements(): void {
         this.elements
             .filter(it => it != this.draggingItem)
             .forEach(it => it.resetDisplacement())
     }
 
     private isInSortableBounds(pos: Position): boolean {
-        if (!this.draggingItem)
-            throw new Error("No dragging item on is in sortable bounds")
-
         const x1 = this.bounds.left
         const x2 = this.bounds.left + this.bounds.width
 

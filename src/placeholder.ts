@@ -49,9 +49,11 @@ export class Placeholder {
         const result: PlaceholderStyle = {
             width,
             height,
-            margin: `${margins.top} ${margins.right} ${margins.bottom} ${
-                margins.left
-            }`,
+            margin:
+                `${margins.top} ` +
+                `${margins.right} ` +
+                `${margins.bottom} ` +
+                `${margins.left}`,
         }
         return result
     }
