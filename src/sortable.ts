@@ -16,6 +16,7 @@ import {
     emptyPosition,
 } from "./types"
 import { Animation } from "./animate"
+import { getClosestScrollable } from "./util"
 
 export enum SortableState {
     Idle,
@@ -34,6 +35,11 @@ const DefaultOptions: SortableOptions = {
     childSelector: undefined,
 }
 
+interface ScrollableParent {
+    element: HTMLElement
+    originalOffset: Position
+}
+
 export class Sortable {
     private elements: Array<DraggableItem> = []
     private bodyRef: HTMLElement = <HTMLElement>document.querySelector("body")
@@ -48,11 +54,19 @@ export class Sortable {
 
     private bounds: Bounds = emptyBounds()
     private margins: Margins = emptyMargins()
+    private padding: Margins = emptyMargins()
     private wasOutOfBounds: boolean = false
 
     private currentMousePos = emptyPosition()
-    private scrollOffset = emptyPosition()
-    private originalScrollOffset = emptyPosition()
+
+    private windowScroll = emptyPosition()
+    private originalWindowScroll = emptyPosition()
+
+    private innerScroll = emptyPosition()
+    private originalInnerScroll = emptyPosition()
+
+    private containerScroll = emptyPosition()
+    private container?: ScrollableParent
 
     private listType: ListType
 
@@ -99,7 +113,14 @@ export class Sortable {
             top: parseInt(style.marginTop || "0", 10),
             bottom: parseInt(style.marginBottom || "0", 10),
             left: parseInt(style.marginLeft || "0", 10),
-            right: parseInt(style.marginRight || "0", 10) || 0,
+            right: parseInt(style.marginRight || "0", 10),
+        }
+
+        this.padding = {
+            top: parseInt(style.paddingTop || "0", 10),
+            bottom: parseInt(style.paddingBottom || "0", 10),
+            left: parseInt(style.paddingLeft || "0", 10),
+            right: parseInt(style.paddingRight || "0", 10),
         }
     }
 
@@ -118,13 +139,29 @@ export class Sortable {
             throw new Error("Tried to drag while in idle")
 
         this.currentMousePos = pos
-        this.originalScrollOffset = {
-            x: document.body.scrollLeft,
-            y: document.body.scrollTop,
+
+        // reset all scroll offsets
+        const closestScrollable = getClosestScrollable(this.ref.parentElement)
+        if (closestScrollable)
+            this.container = {
+                element: closestScrollable,
+                originalOffset: {
+                    x: closestScrollable.scrollLeft,
+                    y: closestScrollable.scrollTop,
+                },
+            }
+
+        this.originalInnerScroll = {
+            x: this.ref.scrollLeft,
+            y: this.ref.scrollTop,
+        }
+
+        this.originalWindowScroll = {
+            x: window.pageXOffset,
+            y: window.pageYOffset,
         }
 
         requestAnimationFrame(() => {
-            this.calculateDimensions()
             this.elements.forEach(it => it.calculateDimensions())
 
             this.state = SortableState.Dragging
@@ -222,8 +259,15 @@ export class Sortable {
         this.draggingIndexOffset = 0
 
         this.currentMousePos = emptyPosition()
-        this.scrollOffset = emptyPosition()
-        this.originalScrollOffset = emptyPosition()
+
+        this.innerScroll = emptyPosition()
+        this.originalInnerScroll = emptyPosition()
+
+        this.windowScroll = emptyPosition()
+        this.originalWindowScroll = emptyPosition()
+
+        this.containerScroll = emptyPosition()
+        this.container = undefined
 
         requestAnimationFrame(() => {
             const snapAnimation = new Animation(
@@ -280,8 +324,16 @@ export class Sortable {
         }
 
         const absItemCenter: Position = {
-            x: itemCenter.x + this.scrollOffset.x,
-            y: itemCenter.y + this.scrollOffset.y,
+            x:
+                itemCenter.x +
+                this.containerScroll.x +
+                this.innerScroll.x +
+                this.windowScroll.x,
+            y:
+                itemCenter.y +
+                this.containerScroll.y +
+                this.innerScroll.y +
+                this.windowScroll.y,
         }
 
         let newOffset = 0
@@ -289,14 +341,16 @@ export class Sortable {
         // If we were out of bounds before, we need to recalculate
         // our limits
         if (this.wasOutOfBounds) {
-            // NOTE: Entered bounds
-            this.wasOutOfBounds = false
+            requestAnimationFrame(() => {
+                // NOTE: Entered bounds
+                this.wasOutOfBounds = false
 
-            newOffset = this.findNewDraggingIndex(absItemCenter)
+                newOffset = this.findNewDraggingIndex(absItemCenter)
 
-            this.draggingIndexOffset = newOffset
-            this.calculateNewLimits()
-            this.displaceItems(0, newOffset)
+                this.draggingIndexOffset = newOffset
+                this.calculateNewLimits()
+                this.displaceItems(0, newOffset)
+            })
 
             return
         }
@@ -356,14 +410,24 @@ export class Sortable {
     }
 
     onBodyScroll(ev: UIEvent): void {
-        const scrollEv = ev as any
-
-        this.scrollOffset = {
-            x: scrollEv.pageX - this.originalScrollOffset.x,
-            y: scrollEv.pageY - this.originalScrollOffset.y,
+        if (ev.target instanceof HTMLDocument) {
+            this.windowScroll = {
+                x: (ev as any).pageX - this.originalWindowScroll.x,
+                y: (ev as any).pageY - this.originalWindowScroll.y,
+            }
+        } else if (this.container && ev.target == this.container.element) {
+            const target = ev.target as HTMLElement
+            this.containerScroll = {
+                x: target.scrollLeft - this.container.originalOffset.x,
+                y: target.scrollTop - this.container.originalOffset.y,
+            }
+        } else if (ev.target == this.ref) {
+            this.innerScroll = {
+                x: this.ref.scrollLeft - this.originalInnerScroll.x,
+                y: this.ref.scrollTop - this.originalInnerScroll.y,
+            }
         }
 
-        this.calculateDimensions()
         this.continueDragging()
     }
 
