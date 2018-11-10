@@ -25,7 +25,7 @@ export class Placeholder {
 
         const { width, height } = bounds
 
-        this.ref = parentNode.insertBefore(elem, ref)
+        this.ref = parentNode.insertBefore(elem, ref.nextElementSibling)
         elem.classList.add(DtimeClass.Placeholder)
         this.setStyle(this.getPlaceholderStyle({ width, height }, margins))
     }

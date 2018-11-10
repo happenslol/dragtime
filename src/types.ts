@@ -4,6 +4,7 @@ export enum DtimeClass {
     SteppingAside = "dtime-stepping-aside",
 
     Placeholder = "dtime-placeholder",
+    PlaceholderInactive = "dtime-placeholder-inactive",
 
     BodyDragging = "dtime-dragging",
 }

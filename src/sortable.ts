@@ -62,9 +62,6 @@ export class Sortable {
     private windowScroll = emptyPosition()
     private originalWindowScroll = emptyPosition()
 
-    private innerScroll = emptyPosition()
-    private originalInnerScroll = emptyPosition()
-
     private containerScroll = emptyPosition()
     private container?: ScrollableParent
 
@@ -260,9 +257,6 @@ export class Sortable {
 
         this.currentMousePos = emptyPosition()
 
-        this.innerScroll = emptyPosition()
-        this.originalInnerScroll = emptyPosition()
-
         this.windowScroll = emptyPosition()
         this.originalWindowScroll = emptyPosition()
 
@@ -324,16 +318,8 @@ export class Sortable {
         }
 
         const absItemCenter: Position = {
-            x:
-                itemCenter.x +
-                this.containerScroll.x +
-                this.innerScroll.x +
-                this.windowScroll.x,
-            y:
-                itemCenter.y +
-                this.containerScroll.y +
-                this.innerScroll.y +
-                this.windowScroll.y,
+            x: itemCenter.x + this.containerScroll.x + this.windowScroll.x,
+            y: itemCenter.y + this.containerScroll.y + this.windowScroll.y,
         }
 
         let newOffset = 0
@@ -367,7 +353,7 @@ export class Sortable {
         })
     }
 
-    displaceItems(_oldOffset: number, newOffset: number): void {
+    private displaceItems(_oldOffset: number, newOffset: number): void {
         if (!this.draggingItem)
             throw new Error("Tried to displace items without dragging item")
 
@@ -420,11 +406,6 @@ export class Sortable {
             this.containerScroll = {
                 x: target.scrollLeft - this.container.originalOffset.x,
                 y: target.scrollTop - this.container.originalOffset.y,
-            }
-        } else if (ev.target == this.ref) {
-            this.innerScroll = {
-                x: this.ref.scrollLeft - this.originalInnerScroll.x,
-                y: this.ref.scrollTop - this.originalInnerScroll.y,
             }
         }
 

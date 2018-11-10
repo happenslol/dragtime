@@ -13,9 +13,7 @@
 
     &.list--vertical {
         flex-direction: column;
-        overflow-y: scroll;
         width: calc(100px + 3rem);
-        height: 900px;
     }
 
     .list__item {
