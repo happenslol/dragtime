@@ -411,17 +411,11 @@ export class Sortable {
             }
         } else {
             const found = this.scrollParents.find(it => it.element == ev.target)
-            if (found) {
+            if (found)
                 found.offsetDelta = {
                     x: found.element.scrollLeft - found.originalOffset.x,
                     y: found.element.scrollTop - found.originalOffset.y,
                 }
-
-                console.log(
-                    `scroll parent now scrolled by ` +
-                        `${found.offsetDelta.x}, ${found.offsetDelta.y}`,
-                )
-            }
         }
 
         this.continueDragging()
