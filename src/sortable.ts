@@ -38,6 +38,7 @@ const DefaultOptions: SortableOptions = {
 interface ScrollableParent {
     element: HTMLElement
     originalOffset: Position
+    offsetDelta: Position
 }
 
 export class Sortable {
@@ -62,8 +63,7 @@ export class Sortable {
     private windowScroll = emptyPosition()
     private originalWindowScroll = emptyPosition()
 
-    private containerScroll = emptyPosition()
-    private container?: ScrollableParent
+    private scrollParents: Array<ScrollableParent> = []
 
     private listType: ListType
 
@@ -138,19 +138,22 @@ export class Sortable {
         this.currentMousePos = pos
 
         // reset all scroll offsets
-        const closestScrollable = getClosestScrollable(this.ref.parentElement)
-        if (closestScrollable)
-            this.container = {
-                element: closestScrollable,
-                originalOffset: {
-                    x: closestScrollable.scrollLeft,
-                    y: closestScrollable.scrollTop,
-                },
-            }
+        let nextParent = this.ref.parentElement
+        while (nextParent) {
+            const nextScrollableParent = getClosestScrollable(nextParent)
 
-        this.originalInnerScroll = {
-            x: this.ref.scrollLeft,
-            y: this.ref.scrollTop,
+            if (nextScrollableParent) {
+                this.scrollParents.push({
+                    element: nextScrollableParent,
+                    originalOffset: {
+                        x: nextScrollableParent.scrollLeft,
+                        y: nextScrollableParent.scrollTop,
+                    },
+                    offsetDelta: emptyPosition(),
+                })
+
+                nextParent = nextScrollableParent.parentElement
+            } else break
         }
 
         this.originalWindowScroll = {
@@ -260,8 +263,7 @@ export class Sortable {
         this.windowScroll = emptyPosition()
         this.originalWindowScroll = emptyPosition()
 
-        this.containerScroll = emptyPosition()
-        this.container = undefined
+        this.scrollParents = []
 
         requestAnimationFrame(() => {
             const snapAnimation = new Animation(
@@ -317,9 +319,15 @@ export class Sortable {
             return
         }
 
+        const scrollParentOffset: Position = { x: 0, y: 0 }
+        this.scrollParents.forEach(it => {
+            scrollParentOffset.x += it.offsetDelta.x
+            scrollParentOffset.y += it.offsetDelta.y
+        })
+
         const absItemCenter: Position = {
-            x: itemCenter.x + this.containerScroll.x + this.windowScroll.x,
-            y: itemCenter.y + this.containerScroll.y + this.windowScroll.y,
+            x: itemCenter.x + this.windowScroll.x + scrollParentOffset.x,
+            y: itemCenter.y + this.windowScroll.y + scrollParentOffset.y,
         }
 
         let newOffset = 0
@@ -401,11 +409,18 @@ export class Sortable {
                 x: (ev as any).pageX - this.originalWindowScroll.x,
                 y: (ev as any).pageY - this.originalWindowScroll.y,
             }
-        } else if (this.container && ev.target == this.container.element) {
-            const target = ev.target as HTMLElement
-            this.containerScroll = {
-                x: target.scrollLeft - this.container.originalOffset.x,
-                y: target.scrollTop - this.container.originalOffset.y,
+        } else {
+            const found = this.scrollParents.find(it => it.element == ev.target)
+            if (found) {
+                found.offsetDelta = {
+                    x: found.element.scrollLeft - found.originalOffset.x,
+                    y: found.element.scrollTop - found.originalOffset.y,
+                }
+
+                console.log(
+                    `scroll parent now scrolled by ` +
+                        `${found.offsetDelta.x}, ${found.offsetDelta.y}`,
+                )
             }
         }
 

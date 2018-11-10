@@ -32,8 +32,16 @@
 
 .scrolling-container {
     height: 600px;
+    width: 210px;
     overflow-y: scroll;
     border-radius: 5px;
     border: 1px solid #ddd;
-    width: 400px;
+}
+
+.scrolling-container-2 {
+    height: 400px;
+    width: 280px;
+    overflow-y: scroll;
+    border-radius: 5px;
+    border: 1px solid #ddd;
 }
