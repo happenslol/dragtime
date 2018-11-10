@@ -13,6 +13,7 @@ import {
     DisplacementDirection,
     emptyDisplacement,
     ListType,
+    emptyPosition,
 } from "./types"
 import { Animation } from "./animate"
 
@@ -49,11 +50,17 @@ export class Sortable {
     private margins: Margins = emptyMargins()
     private wasOutOfBounds: boolean = false
 
+    private currentMousePos = emptyPosition()
+    private scrollOffset = emptyPosition()
+    private originalScrollOffset = emptyPosition()
+
     private listType: ListType
 
     onMouseDownBinding = this.onMouseDown.bind(this)
     onMouseUpBinding = this.onMouseUp.bind(this)
     onMouseMoveBinding = this.onMouseMove.bind(this)
+
+    onBodyScrollBinding = this.onBodyScroll.bind(this)
 
     constructor(
         private ref: HTMLElement,
@@ -110,7 +117,14 @@ export class Sortable {
         if (this.state !== SortableState.Idle)
             throw new Error("Tried to drag while in idle")
 
+        this.currentMousePos = pos
+        this.originalScrollOffset = {
+            x: document.body.scrollLeft,
+            y: document.body.scrollTop,
+        }
+
         requestAnimationFrame(() => {
+            this.calculateDimensions()
             this.elements.forEach(it => it.calculateDimensions())
 
             this.state = SortableState.Dragging
@@ -207,6 +221,10 @@ export class Sortable {
         this.bodyRef.classList.remove(DtimeClass.BodyDragging)
         this.draggingIndexOffset = 0
 
+        this.currentMousePos = emptyPosition()
+        this.scrollOffset = emptyPosition()
+        this.originalScrollOffset = emptyPosition()
+
         requestAnimationFrame(() => {
             const snapAnimation = new Animation(
                 this.draggingItem!,
@@ -229,13 +247,13 @@ export class Sortable {
         })
     }
 
-    private continueDragging(pos: Position): void {
+    private continueDragging(): void {
         if (!this.draggingItem)
             throw new Error("No dragging item on continue dragging")
 
         const itemPos: Position = {
-            x: pos.x - this.clickOffset.x,
-            y: pos.y - this.clickOffset.y,
+            x: this.currentMousePos.x - this.clickOffset.x,
+            y: this.currentMousePos.y - this.clickOffset.y,
         }
 
         this.draggingItem.setPosition(itemPos)
@@ -261,6 +279,11 @@ export class Sortable {
             return
         }
 
+        const absItemCenter: Position = {
+            x: itemCenter.x + this.scrollOffset.x,
+            y: itemCenter.y + this.scrollOffset.y,
+        }
+
         let newOffset = 0
 
         // If we were out of bounds before, we need to recalculate
@@ -269,7 +292,7 @@ export class Sortable {
             // NOTE: Entered bounds
             this.wasOutOfBounds = false
 
-            newOffset = this.findNewDraggingIndex(itemCenter)
+            newOffset = this.findNewDraggingIndex(absItemCenter)
 
             this.draggingIndexOffset = newOffset
             this.calculateNewLimits()
@@ -279,8 +302,8 @@ export class Sortable {
         }
 
         this.draggingLimits.forEach(it => {
-            if (this.isLimitExceeded(it, itemCenter)) {
-                newOffset = this.findNewDraggingIndex(itemCenter)
+            if (this.isLimitExceeded(it, absItemCenter)) {
+                newOffset = this.findNewDraggingIndex(absItemCenter)
                 const oldOffset = this.draggingIndexOffset
 
                 this.draggingIndexOffset = newOffset
@@ -327,20 +350,37 @@ export class Sortable {
 
         const { clientX: x, clientY: y } = ev
         const pos: Position = { x, y }
+        this.currentMousePos = pos
 
-        this.continueDragging(pos)
+        this.continueDragging()
+    }
+
+    onBodyScroll(ev: UIEvent): void {
+        const scrollEv = ev as any
+
+        this.scrollOffset = {
+            x: scrollEv.pageX - this.originalScrollOffset.x,
+            y: scrollEv.pageY - this.originalScrollOffset.y,
+        }
+
+        this.calculateDimensions()
+        this.continueDragging()
     }
 
     private bindWindowEvents(): void {
         this.bindEvent("mousedown", this.onMouseDownBinding)
         this.bindEvent("mouseup", this.onMouseUpBinding)
         this.bindEvent("mousemove", this.onMouseMoveBinding)
+
+        document.addEventListener("scroll", this.onBodyScrollBinding, true)
     }
 
     private unbindWindowEvents(): void {
         this.unbindEvent("mousedown", this.onMouseDownBinding)
         this.unbindEvent("mouseup", this.onMouseUpBinding)
         this.unbindEvent("mousemove", this.onMouseMoveBinding)
+
+        document.removeEventListener("scroll", this.onBodyScrollBinding, true)
     }
 
     private calculateNewLimits(): void {

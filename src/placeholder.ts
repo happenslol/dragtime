@@ -20,12 +20,8 @@ export class Placeholder {
         this.bounds = bounds
         this.margins = margins
 
-        if (!parentNode) {
-            // NOTE: This should never happen. (theoretically)
-            console.error("No parent node for draggable item!")
-            this.ref = elem
-            return
-        }
+        // NOTE: This should never happen. (theoretically)
+        if (!parentNode) throw new Error("No parent node for draggable item!")
 
         const { width, height } = bounds
 
