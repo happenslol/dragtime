@@ -18,6 +18,8 @@ $prefix: dtime;
 .#{$prefix}-stepping-aside {
     // taken from react-beautiful-dnd
     transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    pointer-events: none;
+    cursor: inherit;
 }
 
 .#{$prefix}-placeholder {
@@ -30,8 +32,8 @@ $prefix: dtime;
 
 body.#{$prefix}-dragging {
     // taken from react-beautiful-dnd
-    cursor: grabbing !important;
-    cursor: -webkit-grabbing !important;
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;

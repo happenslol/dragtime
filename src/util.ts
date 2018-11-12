@@ -12,9 +12,10 @@ export interface ScrollableParent {
     offsetDelta: Position
     scrollAreas: Array<ScrollArea>
     clientBounds: Bounds
+    visibleBounds: Bounds
 }
 
-interface ScrollArea {
+export interface ScrollArea {
     direction: Direction
     bounds: Bounds
     canScroll: boolean
@@ -79,8 +80,11 @@ export function getClosestScrollable(
             y: found.element.scrollTop,
         },
         offsetDelta: emptyPosition(),
-        scrollAreas: [],
         clientBounds,
+
+        // These will be calculated when we find the scroll areas
+        visibleBounds: emptyBounds(),
+        scrollAreas: [],
     }
 }
 
@@ -116,19 +120,11 @@ function findScrollAreaForElement(
 ): ScrollArea {
     const canScroll = elementCanScroll(element, direction)
 
-    const top = Math.max(clientBounds.top + offset.y, visibleBounds.top)
-
-    const bottom = Math.min(
-        clientBounds.top + clientBounds.height + offset.y,
-        visibleBounds.top + visibleBounds.height,
-    )
-
-    const left = Math.max(clientBounds.left + offset.x, visibleBounds.left)
-
-    const right = Math.min(
-        clientBounds.left + clientBounds.width + offset.x,
-        visibleBounds.left + visibleBounds.width,
-    )
+    // TODO: Remove this
+    const top = visibleBounds.top - offset.y
+    const bottom = visibleBounds.top + visibleBounds.height - offset.y
+    const left = visibleBounds.left - offset.x
+    const right = visibleBounds.left + visibleBounds.width - offset.x
 
     switch (direction) {
         case Direction.Up:
