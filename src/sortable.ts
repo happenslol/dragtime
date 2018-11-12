@@ -69,6 +69,7 @@ export class Sortable {
     private windowScroll = emptyPosition()
     private originalWindowScroll = emptyPosition()
     private windowScrollAreas: Array<ScrollArea> = []
+    private windowDirectionToScroll?: Direction
 
     private scrollParents: Array<ScrollableParent> = []
     private parentsToScroll: Array<ScrollParentToScroll> = []
@@ -387,6 +388,7 @@ export class Sortable {
         this.windowScroll = emptyPosition()
         this.originalWindowScroll = emptyPosition()
         this.windowScrollAreas = []
+        this.windowDirectionToScroll = undefined
 
         this.scrollParents = []
         this.parentsToScroll = []
@@ -482,8 +484,20 @@ export class Sortable {
                 )
         }
 
+        const foundWindowDirection = this.windowScrollAreas.find(
+            it => it.canScroll && isInBounds(this.currentMousePos, it.bounds),
+        )
+
+        if (foundWindowDirection)
+            this.windowDirectionToScroll = foundWindowDirection.direction
+        else this.windowDirectionToScroll = undefined
+
         // Check if we need to start the autoscroll timer
-        if (!this.autoScrollTimer && this.parentsToScroll.length > 0)
+        if (
+            !this.autoScrollTimer &&
+            (this.parentsToScroll.length > 0 ||
+                this.windowDirectionToScroll !== undefined)
+        )
             this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
 
         if (!this.isInSortableBounds(itemCenter)) {
@@ -531,33 +545,68 @@ export class Sortable {
         })
     }
 
-    private doScroll(): void {
-        if (this.parentsToScroll.length === 0) {
-            this.autoScrollTimer = undefined
-            return
-        }
-
-        const elementToScroll = this.parentsToScroll[0]
-        switch (elementToScroll.direction) {
+    private scrollElement(direction: Direction, element: HTMLElement): void {
+        switch (direction) {
             case Direction.Up:
-                elementToScroll.parent.element.scrollTop -= 10
+                element.scrollTop -= 10
                 break
 
             case Direction.Down:
-                elementToScroll.parent.element.scrollTop += 10
+                element.scrollTop += 10
                 break
 
             case Direction.Left:
-                elementToScroll.parent.element.scrollLeft -= 10
+                element.scrollLeft -= 10
                 break
 
             case Direction.Right:
-                elementToScroll.parent.element.scrollLeft += 10
+                element.scrollLeft += 10
                 break
         }
 
-        this.onScroll(elementToScroll.parent.element)
-        this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
+        this.onScroll(element)
+    }
+
+    private scrollWindow(direction: Direction): void {
+        switch (direction) {
+            case Direction.Up:
+                window.scrollBy(0, -10)
+                break
+
+            case Direction.Down:
+                window.scrollBy(0, 10)
+                break
+
+            case Direction.Left:
+                window.scrollBy(-10, 0)
+                break
+
+            case Direction.Right:
+                window.scrollBy(10, 0)
+                break
+        }
+
+        this.onScroll(document)
+    }
+
+    private doScroll(): void {
+        if (this.parentsToScroll.length !== 0) {
+            const elementToScroll = this.parentsToScroll[0]
+            this.scrollElement(
+                elementToScroll.direction,
+                elementToScroll.parent.element,
+            )
+            this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
+            return
+        }
+
+        if (this.windowDirectionToScroll !== undefined) {
+            this.scrollWindow(this.windowDirectionToScroll)
+            this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
+            return
+        }
+
+        this.autoScrollTimer = undefined
     }
 
     private displaceItems(_oldOffset: number, newOffset: number): void {
@@ -602,7 +651,7 @@ export class Sortable {
         this.continueDragging()
     }
 
-    onScroll(target: HTMLElement | HTMLDocument): void {
+    onScroll(target: HTMLElement | Document): void {
         if (target instanceof HTMLDocument) {
             this.windowScroll = {
                 x: window.pageXOffset - this.originalWindowScroll.x,
