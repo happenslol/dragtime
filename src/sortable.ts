@@ -17,7 +17,12 @@ import {
 } from "./types"
 
 import { Animation } from "./animate"
-import { ScrollParent, ScrollArea, findNextScrollParent } from "./scroll"
+import {
+    ScrollParent,
+    ScrollArea,
+    findNextScrollParent,
+    Scrollable,
+} from "./scroll"
 import { isInBounds } from "./util"
 
 export enum SortableState {
@@ -66,7 +71,7 @@ export class Sortable {
     private windowScrollAreas: Array<ScrollArea> = []
     private windowDirectionToScroll?: Direction
 
-    private scrollParents: Array<ScrollParent> = []
+    private scrollables: Array<Scrollable> = []
     private parentsToScroll: Array<ScrollParentToScroll> = []
     private autoScrollTimer?: number
     private doScrollBinding = this.doScroll.bind(this)
@@ -152,7 +157,7 @@ export class Sortable {
             const next = findNextScrollParent(nextParent)
 
             if (next) {
-                this.scrollParents.push(next)
+                this.scrollables.push(next)
                 nextParent = next.element.parentElement
             } else break
         }
@@ -251,35 +256,12 @@ export class Sortable {
 
         const offset: Position = { ...this.windowScroll }
 
-        // DEBUG
-        Array.from(document.getElementsByClassName("test-el")).forEach(it =>
-            it.remove(),
-        )
-        // /DEBUG
-
         // Go through the scroll parents in reverse order, so we can pass
         // down the visible bounds
-        for (let i = this.scrollParents.length - 1; i >= 0; i--) {
-            const it = this.scrollParents[i]
+        for (let i = this.scrollables.length - 1; i >= 0; i--) {
+            const it = this.scrollables[i]
             visibleBounds = it.clipToBounds(visibleBounds)
             it.findScrollAreas(offset)
-
-            // DEBUG
-            it.scrollAreas.forEach(it => {
-                const el = document.createElement("div")
-                el.classList.add("test-el")
-                el.style.position = "fixed"
-                el.style.backgroundColor = "#F00"
-                el.style.opacity = "0.3"
-
-                el.style.width = `${it.bounds.width}px`
-                el.style.height = `${it.bounds.height}px`
-                el.style.left = `${it.bounds.left}px`
-                el.style.top = `${it.bounds.top}px`
-
-                document.body.appendChild(el)
-            })
-            // /DEBUG
         }
     }
 
@@ -358,7 +340,7 @@ export class Sortable {
         this.windowScrollAreas = []
         this.windowDirectionToScroll = undefined
 
-        this.scrollParents = []
+        this.scrollables = []
         this.parentsToScroll = []
 
         requestAnimationFrame(() => {
@@ -399,58 +381,22 @@ export class Sortable {
             y: itemPos.y + this.draggingItem.bounds.height / 2,
         }
 
-        const scrollParentOffset: Position = { x: 0, y: 0 }
-        this.scrollParents.forEach(it => {
-            scrollParentOffset.x += it.offsetDelta.x
-            scrollParentOffset.y += it.offsetDelta.y
-        })
+        const offset = this.scrollables.reduce((acc, it) => {
+            acc.x += it.offsetDelta.x
+            acc.y += it.offsetDelta.y
+            return acc
+        }, emptyPosition())
 
         const absItemCenter: Position = {
-            x: itemCenter.x + this.windowScroll.x + scrollParentOffset.x,
-            y: itemCenter.y + this.windowScroll.y + scrollParentOffset.y,
+            x: itemCenter.x + this.windowScroll.x + offset.x,
+            y: itemCenter.y + this.windowScroll.y + offset.y,
         }
-
-        let newOffset = 0
 
         // edge scroll detection
-        const scrollParentsToCheck: Array<ScrollParent> = []
         // TODO: Do we use the item center or the mouse pos here?
         // Maybe provide an option for the user to choose?
-        for (let i = 0; i < this.scrollParents.length; i++) {
-            const it = this.scrollParents[i]
-
-            // if there are no scroll areas or none of them can scroll,
-            // we can skip this
-            if (
-                it.scrollAreas.length === 0 ||
-                !it.scrollAreas.some(it => it.canScroll)
-            )
-                continue
-
-            // check if we are moving in the parent
-            if (isInBounds(this.currentMousePos, it.visibleBounds))
-                scrollParentsToCheck.push(it)
-        }
-
-        // TODO: Does this cause a lot of garbage collection? Might have
-        // to do something about it if it does
-        this.parentsToScroll = []
-        for (let i = 0; i < scrollParentsToCheck.length; i++) {
-            const it = scrollParentsToCheck[i]
-            const areas = it.scrollAreas.filter(
-                area =>
-                    area.canScroll &&
-                    isInBounds(this.currentMousePos, area.bounds),
-            )
-
-            if (areas.length > 0)
-                areas.forEach(area =>
-                    this.parentsToScroll.push({
-                        parent: it,
-                        direction: area.direction,
-                    }),
-                )
-        }
+        for (let i = 0; i < this.scrollables.length; i++)
+            this.scrollables[i].updateScrolling(this.currentMousePos)
 
         const foundWindowDirection = this.windowScrollAreas.find(
             it => it.canScroll && isInBounds(this.currentMousePos, it.bounds),
@@ -463,8 +409,7 @@ export class Sortable {
         // Check if we need to start the autoscroll timer
         if (
             !this.autoScrollTimer &&
-            (this.parentsToScroll.length > 0 ||
-                this.windowDirectionToScroll !== undefined)
+            this.scrollables.some(it => it.shouldScroll())
         )
             this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
 
@@ -491,7 +436,7 @@ export class Sortable {
                 // NOTE: Entered bounds
                 this.wasOutOfBounds = false
 
-                newOffset = this.findNewDraggingIndex(absItemCenter)
+                const newOffset = this.findNewDraggingIndex(absItemCenter)
 
                 this.draggingIndexOffset = newOffset
                 this.calculateNewLimits()
@@ -503,7 +448,7 @@ export class Sortable {
 
         this.draggingLimits.forEach(it => {
             if (this.isLimitExceeded(it, absItemCenter)) {
-                newOffset = this.findNewDraggingIndex(absItemCenter)
+                const newOffset = this.findNewDraggingIndex(absItemCenter)
                 const oldOffset = this.draggingIndexOffset
 
                 this.draggingIndexOffset = newOffset
@@ -513,63 +458,12 @@ export class Sortable {
         })
     }
 
-    private scrollElement(direction: Direction, element: HTMLElement): void {
-        switch (direction) {
-            case Direction.Up:
-                element.scrollTop -= 10
-                break
-
-            case Direction.Down:
-                element.scrollTop += 10
-                break
-
-            case Direction.Left:
-                element.scrollLeft -= 10
-                break
-
-            case Direction.Right:
-                element.scrollLeft += 10
-                break
-        }
-
-        this.onScroll(element)
-    }
-
-    private scrollWindow(direction: Direction): void {
-        switch (direction) {
-            case Direction.Up:
-                window.scrollBy(0, -10)
-                break
-
-            case Direction.Down:
-                window.scrollBy(0, 10)
-                break
-
-            case Direction.Left:
-                window.scrollBy(-10, 0)
-                break
-
-            case Direction.Right:
-                window.scrollBy(10, 0)
-                break
-        }
-
-        this.onScroll(document)
-    }
-
     private doScroll(): void {
-        if (this.parentsToScroll.length !== 0) {
-            const elementToScroll = this.parentsToScroll[0]
-            this.scrollElement(
-                elementToScroll.direction,
-                elementToScroll.parent.element,
-            )
-            this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
-            return
-        }
+        const toScroll = this.scrollables.filter(it => it.shouldScroll())[0]
 
-        if (this.windowDirectionToScroll !== undefined) {
-            this.scrollWindow(this.windowDirectionToScroll)
+        if (toScroll) {
+            toScroll.doScroll()
+            this.onScroll(toScroll.getTarget())
             this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
             return
         }
@@ -620,32 +514,17 @@ export class Sortable {
     }
 
     onScroll(target: HTMLElement | Document): void {
-        if (target instanceof HTMLDocument) {
-            this.windowScroll = {
-                x: window.pageXOffset - this.originalWindowScroll.x,
-                y: window.pageYOffset - this.originalWindowScroll.y,
-            }
+        const index = this.scrollables.findIndex(it => it.getTarget() == target)
+        if (index !== -1) {
+            const found = this.scrollables[index]
+            found.updateOffsetDelta()
 
-            this.calculateScrollAreas()
-            this.continueDragging()
-        } else {
-            const foundIndex = this.scrollParents.findIndex(
-                it => it.element == target,
-            )
-            if (foundIndex !== -1) {
-                const found = this.scrollParents[foundIndex]
-                found.offsetDelta = {
-                    x: found.element.scrollLeft - found.originalOffset.x,
-                    y: found.element.scrollTop - found.originalOffset.y,
-                }
-
-                // If only the innermost element is scrolled, the scroll
-                // areas do not change
-                // if (foundIndex > 0)
+            // If only the innermost element is scrolled, the scroll
+            // areas do not change
+            if (index > 0 || found.getTarget() == document)
                 this.calculateScrollAreas()
 
-                this.continueDragging()
-            }
+            this.continueDragging()
         }
     }
 

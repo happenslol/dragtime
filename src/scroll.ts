@@ -5,6 +5,7 @@ import {
     emptyPosition,
     emptyBounds,
 } from "./types"
+import { isInBounds } from "./util"
 
 const windowScrollAreaSize = 0.1
 const elementScrollAreaSize = 0.1
@@ -14,6 +15,18 @@ const maxWindowScrollSpeed = 20
 
 const minElementScrollSpeed = 5
 const maxElementScrollSpeed = 20
+
+export interface Scrollable {
+    findScrollAreas: (offset: Position) => void
+    updateScrolling: (position: Position) => void
+    updateOffsetDelta: () => void
+    clipToBounds: (outerBounds: Bounds) => Bounds
+    shouldScroll: () => boolean
+    doScroll: () => void
+    getTarget(): HTMLElement | Document
+
+    offsetDelta: Position
+}
 
 export function findNextScrollParent(
     element: HTMLElement | null,
@@ -50,7 +63,7 @@ function isElementScrollable(element: HTMLElement): boolean {
     return isScrollable(styles.overflow, styles.overflowX, styles.overflowY)
 }
 
-export class ScrollParent {
+export class ScrollParent implements Scrollable {
     originalOffset: Position
     clientBounds: Bounds
     styles: CSSStyleDeclaration
@@ -62,6 +75,8 @@ export class ScrollParent {
     // areas are redone
     visibleBounds: Bounds = emptyBounds()
     scrollAreas: Array<ScrollArea> = []
+
+    scrolling = emptyPosition()
 
     constructor(public element: HTMLElement) {
         this.styles = window.getComputedStyle(this.element)
@@ -80,7 +95,62 @@ export class ScrollParent {
         }
     }
 
+    updateScrolling(position: Position): void {
+        this.scrolling = emptyPosition()
+
+        if (
+            this.scrollAreas.length === 0 ||
+            !isInBounds(position, this.visibleBounds) ||
+            !this.scrollAreas.some(it => it.canScroll)
+        )
+            return
+
+        this.scrollAreas
+            .filter(it => it.canScroll && isInBounds(position, it.bounds))
+            .forEach(it => {
+                switch (it.direction) {
+                    case Direction.Up:
+                        this.scrolling.y -= 10
+                        break
+                    case Direction.Down:
+                        this.scrolling.y += 10
+                        break
+                    case Direction.Left:
+                        this.scrolling.x -= 10
+                        break
+                    case Direction.Right:
+                        this.scrolling.x += 10
+                        break
+                }
+            })
+    }
+
+    shouldScroll(): boolean {
+        return this.scrolling.x !== 0 || this.scrolling.y !== 0
+    }
+
+    doScroll(): void {
+        this.element.scrollLeft += this.scrolling.x
+        this.element.scrollTop += this.scrolling.y
+
+        this.scrollAreas.forEach(it => {
+            it.canScroll = this.canScrollInDirection(it.direction)
+        })
+    }
+
+    getTarget(): HTMLElement | Document {
+        return this.element
+    }
+
+    updateOffsetDelta(): void {
+        this.offsetDelta = {
+            x: this.element.scrollLeft - this.originalOffset.x,
+            y: this.element.scrollTop - this.originalOffset.y,
+        }
+    }
+
     findScrollAreas(offset: Position): void {
+        this.scrolling = emptyPosition()
         this.scrollAreas = []
 
         if (isScrollable(this.styles.overflowY)) {
@@ -94,6 +164,7 @@ export class ScrollParent {
         }
     }
 
+    // Returns a copy of the new bounds for this parent
     clipToBounds(outerBounds: Bounds): Bounds {
         const bottom = Math.min(
             this.clientBounds.top + this.clientBounds.height,
