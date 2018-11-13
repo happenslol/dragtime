@@ -17,13 +17,8 @@ import {
 } from "./types"
 
 import { Animation } from "./animate"
-import {
-    getClosestScrollable,
-    ScrollableParent,
-    isInBounds,
-    findScrollAreas,
-    ScrollArea,
-} from "./util"
+import { ScrollParent, ScrollArea, findNextScrollParent } from "./scroll"
+import { isInBounds } from "./util"
 
 export enum SortableState {
     Idle,
@@ -38,7 +33,7 @@ export interface SortableOptions {
 }
 
 interface ScrollParentToScroll {
-    parent: ScrollableParent
+    parent: ScrollParent
     direction: Direction
 }
 
@@ -49,7 +44,7 @@ const DefaultOptions: SortableOptions = {
 
 export class Sortable {
     private elements: Array<DraggableItem> = []
-    private bodyRef: HTMLElement = <HTMLElement>document.querySelector("body")
+    private bodyRef: HTMLElement = document.querySelector("body") as HTMLElement
 
     state: SortableState = SortableState.Idle
 
@@ -71,7 +66,7 @@ export class Sortable {
     private windowScrollAreas: Array<ScrollArea> = []
     private windowDirectionToScroll?: Direction
 
-    private scrollParents: Array<ScrollableParent> = []
+    private scrollParents: Array<ScrollParent> = []
     private parentsToScroll: Array<ScrollParentToScroll> = []
     private autoScrollTimer?: number
     private doScrollBinding = this.doScroll.bind(this)
@@ -154,7 +149,7 @@ export class Sortable {
         // reset all scroll offsets
         let nextParent = this.ref.parentElement
         while (nextParent) {
-            const next = getClosestScrollable(nextParent)
+            const next = findNextScrollParent(nextParent)
 
             if (next) {
                 this.scrollParents.push(next)
@@ -199,7 +194,7 @@ export class Sortable {
     }
 
     private calculateScrollAreas(): void {
-        const visibleBounds: Bounds = {
+        let visibleBounds: Bounds = {
             top: window.pageYOffset,
             left: window.pageXOffset,
             height: window.innerHeight,
@@ -257,61 +252,34 @@ export class Sortable {
         const offset: Position = { ...this.windowScroll }
 
         // DEBUG
-        // Array.from(document.getElementsByClassName("test-el")).forEach(it =>
-        //     it.remove(),
-        // )
-        // /DEBUG
-
-        // DEBUG
-        // this.windowScrollAreas.forEach(it => {
-        //     const el = document.createElement("div")
-        //     el.classList.add("test-el")
-        //     el.style.position = "fixed"
-        //     el.style.backgroundColor = "#F00"
-        //     el.style.opacity = "0.3"
-
-        //     el.style.width = `${it.bounds.width}px`
-        //     el.style.height = `${it.bounds.height}px`
-        //     el.style.left = `${it.bounds.left}px`
-        //     el.style.top = `${it.bounds.top}px`
-
-        //     document.body.appendChild(el)
-        // })
+        Array.from(document.getElementsByClassName("test-el")).forEach(it =>
+            it.remove(),
+        )
         // /DEBUG
 
         // Go through the scroll parents in reverse order, so we can pass
         // down the visible bounds
         for (let i = this.scrollParents.length - 1; i >= 0; i--) {
             const it = this.scrollParents[i]
+            visibleBounds = it.clipToBounds(visibleBounds)
+            it.findScrollAreas(offset)
 
-            const bottom = Math.min(
-                it.clientBounds.top + it.clientBounds.height,
-                visibleBounds.top + visibleBounds.height,
-            )
+            // DEBUG
+            it.scrollAreas.forEach(it => {
+                const el = document.createElement("div")
+                el.classList.add("test-el")
+                el.style.position = "fixed"
+                el.style.backgroundColor = "#F00"
+                el.style.opacity = "0.3"
 
-            const right = Math.min(
-                it.clientBounds.left + it.clientBounds.width,
-                visibleBounds.left + visibleBounds.width,
-            )
+                el.style.width = `${it.bounds.width}px`
+                el.style.height = `${it.bounds.height}px`
+                el.style.left = `${it.bounds.left}px`
+                el.style.top = `${it.bounds.top}px`
 
-            // Set the visible bounds for this element first thing,
-            // so that the scroll areas won't ever exceed these
-            visibleBounds.top = Math.max(it.clientBounds.top, visibleBounds.top)
-            visibleBounds.left = Math.max(
-                it.clientBounds.left,
-                visibleBounds.left,
-            )
-
-            visibleBounds.width = right - visibleBounds.left
-            visibleBounds.height = bottom - visibleBounds.top
-
-            it.visibleBounds = { ...visibleBounds }
-            it.scrollAreas = findScrollAreas(
-                offset,
-                it.visibleBounds,
-                it.clientBounds,
-                it.element,
-            )
+                document.body.appendChild(el)
+            })
+            // /DEBUG
         }
     }
 
@@ -445,7 +413,7 @@ export class Sortable {
         let newOffset = 0
 
         // edge scroll detection
-        const scrollParentsToCheck: Array<ScrollableParent> = []
+        const scrollParentsToCheck: Array<ScrollParent> = []
         // TODO: Do we use the item center or the mouse pos here?
         // Maybe provide an option for the user to choose?
         for (let i = 0; i < this.scrollParents.length; i++) {
