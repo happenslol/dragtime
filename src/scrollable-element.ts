@@ -6,64 +6,14 @@ import {
     emptyBounds,
 } from "./types"
 import { isInBounds } from "./util"
+import {
+    Scrollable,
+    ScrollArea,
+    isScrollable,
+    elementScrollAreaSize,
+} from "./scrollable"
 
-const windowScrollAreaSize = 0.1
-const elementScrollAreaSize = 0.1
-
-const minWindowScrollSpeed = 5
-const maxWindowScrollSpeed = 20
-
-const minElementScrollSpeed = 5
-const maxElementScrollSpeed = 20
-
-export interface Scrollable {
-    findScrollAreas: (offset: Position) => void
-    updateScrolling: (position: Position) => void
-    updateOffsetDelta: () => void
-    clipToBounds: (outerBounds: Bounds) => Bounds
-    shouldScroll: () => boolean
-    doScroll: () => void
-    getTarget(): HTMLElement | Document
-
-    offsetDelta: Position
-}
-
-export function findNextScrollParent(
-    element: HTMLElement | null,
-): ScrollParent | null {
-    if (element === null) return null
-
-    const found = findScrollable(element)
-    if (found === null) return null
-
-    return new ScrollParent(found)
-}
-
-function findScrollable(element: HTMLElement | null): HTMLElement | null {
-    if (element === null) return null
-
-    if (!isElementScrollable(element))
-        return findScrollable(element.parentElement)
-
-    return element
-}
-
-export interface ScrollArea {
-    direction: Direction
-    bounds: Bounds
-    canScroll: boolean
-}
-
-function isScrollable(...values: Array<string | null>): boolean {
-    return values.some(it => it === "auto" || it === "scroll")
-}
-
-function isElementScrollable(element: HTMLElement): boolean {
-    const styles = window.getComputedStyle(element)
-    return isScrollable(styles.overflow, styles.overflowX, styles.overflowY)
-}
-
-export class ScrollParent implements Scrollable {
+export class ScrollableElement implements Scrollable {
     originalOffset: Position
     clientBounds: Bounds
     styles: CSSStyleDeclaration

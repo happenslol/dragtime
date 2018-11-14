@@ -7,9 +7,7 @@ import {
     Direction,
     Position,
     Bounds,
-    Margins,
     emptyBounds,
-    emptyMargins,
     DisplacementDirection,
     emptyDisplacement,
     ListType,
@@ -17,13 +15,9 @@ import {
 } from "./types"
 
 import { Animation } from "./animate"
-import {
-    ScrollParent,
-    ScrollArea,
-    findNextScrollParent,
-    Scrollable,
-} from "./scroll"
+import { findNextScrollParent, Scrollable } from "./scrollable"
 import { isInBounds } from "./util"
+import { ScrollableWindow } from "./scrollable-window"
 
 export enum SortableState {
     Idle,
@@ -35,11 +29,6 @@ export enum SortableState {
 export interface SortableOptions {
     listType?: ListType
     childSelector?: string
-}
-
-interface ScrollParentToScroll {
-    parent: ScrollParent
-    direction: Direction
 }
 
 const DefaultOptions: SortableOptions = {
@@ -60,19 +49,11 @@ export class Sortable {
     private placeholder?: Placeholder
 
     private bounds: Bounds = emptyBounds()
-    private margins: Margins = emptyMargins()
-    private padding: Margins = emptyMargins()
     private wasOutOfBounds: boolean = false
 
     private currentMousePos = emptyPosition()
 
-    private windowScroll = emptyPosition()
-    private originalWindowScroll = emptyPosition()
-    private windowScrollAreas: Array<ScrollArea> = []
-    private windowDirectionToScroll?: Direction
-
     private scrollables: Array<Scrollable> = []
-    private parentsToScroll: Array<ScrollParentToScroll> = []
     private autoScrollTimer?: number
     private doScrollBinding = this.doScroll.bind(this)
 
@@ -82,9 +63,7 @@ export class Sortable {
     onMouseUpBinding = this.onMouseUp.bind(this)
     onMouseMoveBinding = this.onMouseMove.bind(this)
     onScrollBinding = (ev: UIEvent) => {
-        // Target here will be either HTMLDocument or HTMLElement,
-        // but we can't cast it as such correctly (or can we?)
-        if (ev.target) this.onScroll(ev.target as any)
+        if (ev.target) this.onScroll(ev.target as HTMLElement | HTMLDocument)
     }
 
     constructor(
@@ -118,21 +97,6 @@ export class Sortable {
     calculateDimensions(): void {
         const { top, left, width, height } = this.ref.getBoundingClientRect()
         this.bounds = { top, left, width, height }
-
-        const style = window.getComputedStyle(this.ref)
-        this.margins = {
-            top: parseInt(style.marginTop || "0", 10),
-            bottom: parseInt(style.marginBottom || "0", 10),
-            left: parseInt(style.marginLeft || "0", 10),
-            right: parseInt(style.marginRight || "0", 10),
-        }
-
-        this.padding = {
-            top: parseInt(style.paddingTop || "0", 10),
-            bottom: parseInt(style.paddingBottom || "0", 10),
-            left: parseInt(style.paddingLeft || "0", 10),
-            right: parseInt(style.paddingRight || "0", 10),
-        }
     }
 
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
@@ -162,12 +126,9 @@ export class Sortable {
             } else break
         }
 
-        this.calculateScrollAreas()
+        this.scrollables.push(new ScrollableWindow())
 
-        this.originalWindowScroll = {
-            x: window.pageXOffset,
-            y: window.pageYOffset,
-        }
+        this.calculateScrollAreas()
 
         requestAnimationFrame(() => {
             this.elements.forEach(it => it.calculateDimensions())
@@ -199,65 +160,12 @@ export class Sortable {
     }
 
     private calculateScrollAreas(): void {
-        let visibleBounds: Bounds = {
-            top: window.pageYOffset,
-            left: window.pageXOffset,
-            height: window.innerHeight,
-            width: window.innerWidth,
-        }
-
-        // TODO: These should only be calced once on startDragging,
-        // after that we only need to update their canScroll value
-        this.windowScrollAreas = []
-        this.windowScrollAreas.push(
-            {
-                bounds: {
-                    top: 0,
-                    left: 0,
-                    width: visibleBounds.width,
-                    height: visibleBounds.height * 0.1,
-                },
-                canScroll: window.pageYOffset > 0,
-                direction: Direction.Up,
-            },
-            {
-                bounds: {
-                    top: visibleBounds.height - visibleBounds.height * 0.1,
-                    left: 0,
-                    width: visibleBounds.width,
-                    height: visibleBounds.height * 0.1,
-                },
-                // TODO
-                canScroll: true,
-                direction: Direction.Down,
-            },
-            {
-                bounds: {
-                    top: 0,
-                    left: 0,
-                    width: visibleBounds.width * 0.1,
-                    height: visibleBounds.height,
-                },
-                canScroll: window.pageXOffset > 0,
-                direction: Direction.Left,
-            },
-            {
-                bounds: {
-                    top: 0,
-                    left: visibleBounds.width - visibleBounds.width * 0.1,
-                    width: visibleBounds.width * 0.1,
-                    height: visibleBounds.height,
-                },
-                // TODO
-                canScroll: true,
-                direction: Direction.Right,
-            },
-        )
-
-        const offset: Position = { ...this.windowScroll }
+        const windowScrollable = this.scrollables[this.scrollables.length - 1]
+        const offset = windowScrollable.offsetDelta
 
         // Go through the scroll parents in reverse order, so we can pass
         // down the visible bounds
+        let visibleBounds = emptyBounds()
         for (let i = this.scrollables.length - 1; i >= 0; i--) {
             const it = this.scrollables[i]
             visibleBounds = it.clipToBounds(visibleBounds)
@@ -334,14 +242,7 @@ export class Sortable {
         this.draggingIndexOffset = 0
 
         this.currentMousePos = emptyPosition()
-
-        this.windowScroll = emptyPosition()
-        this.originalWindowScroll = emptyPosition()
-        this.windowScrollAreas = []
-        this.windowDirectionToScroll = undefined
-
         this.scrollables = []
-        this.parentsToScroll = []
 
         requestAnimationFrame(() => {
             const snapAnimation = new Animation(
@@ -388,8 +289,8 @@ export class Sortable {
         }, emptyPosition())
 
         const absItemCenter: Position = {
-            x: itemCenter.x + this.windowScroll.x + offset.x,
-            y: itemCenter.y + this.windowScroll.y + offset.y,
+            x: itemCenter.x + offset.x,
+            y: itemCenter.y + offset.y,
         }
 
         // edge scroll detection
@@ -398,14 +299,6 @@ export class Sortable {
         for (let i = 0; i < this.scrollables.length; i++)
             this.scrollables[i].updateScrolling(this.currentMousePos)
 
-        const foundWindowDirection = this.windowScrollAreas.find(
-            it => it.canScroll && isInBounds(this.currentMousePos, it.bounds),
-        )
-
-        if (foundWindowDirection)
-            this.windowDirectionToScroll = foundWindowDirection.direction
-        else this.windowDirectionToScroll = undefined
-
         // Check if we need to start the autoscroll timer
         if (
             !this.autoScrollTimer &&
@@ -413,7 +306,7 @@ export class Sortable {
         )
             this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
 
-        if (!this.isInSortableBounds(itemCenter)) {
+        if (!isInBounds(itemCenter, this.bounds)) {
             if (!this.wasOutOfBounds) {
                 // Left bounds
                 this.wasOutOfBounds = true
@@ -638,16 +531,6 @@ export class Sortable {
         this.elements
             .filter(it => it != this.draggingItem)
             .forEach(it => it.resetDisplacement())
-    }
-
-    private isInSortableBounds(pos: Position): boolean {
-        const x1 = this.bounds.left
-        const x2 = this.bounds.left + this.bounds.width
-
-        const y1 = this.bounds.top
-        const y2 = this.bounds.top + this.bounds.height
-
-        return pos.x >= x1 && pos.x <= x2 && (pos.y >= y1 && pos.y <= y2)
     }
 
     private isLimitExceeded(limit: Limit, pos: Position): boolean {
