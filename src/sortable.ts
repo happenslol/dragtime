@@ -96,7 +96,7 @@ export class Sortable {
     }
 
     onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
-        // TODO: can we start dragging, sloppy click detection etc.
+        // TODO: Implement sloppy click detection
         if (this.state !== SortableState.Idle) return
 
         const { clientX: x, clientY: y } = ev
@@ -283,9 +283,6 @@ export class Sortable {
             y: itemCenter.y + offset.y,
         }
 
-        // edge scroll detection
-        // TODO: Do we use the item center or the mouse pos here?
-        // Maybe provide an option for the user to choose?
         for (let i = 0; i < this.scrollables.length; i++)
             this.scrollables[i].updateScrolling(this.currentMousePos)
 
