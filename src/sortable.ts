@@ -3,8 +3,6 @@ import { Placeholder } from "./placeholder"
 import {
     WindowEvent,
     DtimeClass,
-    Limit,
-    Direction,
     Position,
     Bounds,
     emptyBounds,
@@ -16,8 +14,15 @@ import {
 
 import { Animation } from "./animate"
 import { findNextScrollParent, Scrollable } from "./scrollable"
-import { isInBounds } from "./util"
+import { isInBounds, sortByIndex } from "./util"
 import { ScrollableWindow } from "./scrollable-window"
+import { getLimits, isLimitExceeded, Limit } from "./limit"
+import {
+    bindWindowEvent,
+    bindScrollEvent,
+    unbindWindowEvent,
+    unbindScrollEvent,
+} from "./events"
 
 export enum SortableState {
     Idle,
@@ -45,7 +50,7 @@ export class Sortable {
     private draggingItem?: DraggableItem
     private clickOffset: Position = { x: 0, y: 0 }
     private draggingIndexOffset: number = 0
-    private draggingLimits: Array<Limit> = []
+    private limits: Array<Limit> = []
     private placeholder?: Placeholder
 
     private bounds: Bounds = emptyBounds()
@@ -55,16 +60,8 @@ export class Sortable {
 
     private scrollables: Array<Scrollable> = []
     private autoScrollTimer?: number
-    private doScrollBinding = this.doScroll.bind(this)
 
     private listType: ListType
-
-    onMouseDownBinding = this.onMouseDown.bind(this)
-    onMouseUpBinding = this.onMouseUp.bind(this)
-    onMouseMoveBinding = this.onMouseMove.bind(this)
-    onScrollBinding = (ev: UIEvent) => {
-        if (ev.target) this.onScroll(ev.target as HTMLElement | HTMLDocument)
-    }
 
     constructor(
         private ref: HTMLElement,
@@ -223,12 +220,7 @@ export class Sortable {
             if (this.elements.some(it => it.index === -1))
                 throw new Error("Element not found in parent")
 
-            this.elements.sort(({ index: a }, { index: b }) => {
-                if (a > b) return 1
-                if (a < b) return -1
-
-                throw new Error("Found same index twice")
-            })
+            this.elements.sort(sortByIndex)
         }
 
         this.resetElements()
@@ -248,21 +240,20 @@ export class Sortable {
             const snapAnimation = new Animation(
                 this.draggingItem!,
                 this.placeholder!,
-                () => {
-                    this.draggingItem!.state = DraggableState.Idle
-                    this.draggingItem!.removeStyle()
-                    this.draggingItem = undefined
-
-                    requestAnimationFrame(() => {
-                        this.placeholder!.destroy()
-                        this.placeholder = undefined
-
-                        this.state = SortableState.Idle
-                    })
-                },
             )
 
-            snapAnimation.run()
+            snapAnimation.run(() => {
+                this.draggingItem!.state = DraggableState.Idle
+                this.draggingItem!.removeStyle()
+                this.draggingItem = undefined
+
+                requestAnimationFrame(() => {
+                    this.placeholder!.destroy()
+                    this.placeholder = undefined
+
+                    this.state = SortableState.Idle
+                })
+            })
         })
     }
 
@@ -304,7 +295,9 @@ export class Sortable {
             !this.autoScrollTimer &&
             this.scrollables.some(it => it.shouldScroll())
         )
-            this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
+            this.autoScrollTimer = requestAnimationFrame(
+                this.doScroll.bind(this),
+            )
 
         if (!isInBounds(itemCenter, this.bounds)) {
             if (!this.wasOutOfBounds) {
@@ -314,7 +307,7 @@ export class Sortable {
                 // Reset limits. Might want to keep limits intact
                 // in some form if recalculating them on reenter
                 // incurs some sort of performance penalty.
-                this.draggingLimits = []
+                this.limits = []
                 this.draggingIndexOffset = 0
                 this.resetElements()
             }
@@ -339,8 +332,8 @@ export class Sortable {
             return
         }
 
-        this.draggingLimits.forEach(it => {
-            if (this.isLimitExceeded(it, absItemCenter)) {
+        this.limits.forEach(it => {
+            if (isLimitExceeded(it, absItemCenter)) {
                 const newOffset = this.findNewDraggingIndex(absItemCenter)
                 const oldOffset = this.draggingIndexOffset
 
@@ -356,8 +349,10 @@ export class Sortable {
 
         if (toScroll) {
             toScroll.doScroll()
-            this.onScroll(toScroll.getTarget())
-            this.autoScrollTimer = requestAnimationFrame(this.doScrollBinding)
+            this.handleScroll(toScroll.getTarget())
+            this.autoScrollTimer = requestAnimationFrame(
+                this.doScroll.bind(this),
+            )
             return
         }
 
@@ -406,7 +401,12 @@ export class Sortable {
         this.continueDragging()
     }
 
-    onScroll(target: HTMLElement | Document): void {
+    onScroll(ev: UIEvent): void {
+        if (ev.target)
+            this.handleScroll(ev.target as HTMLElement | HTMLDocument)
+    }
+
+    handleScroll(target: HTMLElement | Document): void {
         const index = this.scrollables.findIndex(it => it.getTarget() == target)
         if (index !== -1) {
             const found = this.scrollables[index]
@@ -422,64 +422,27 @@ export class Sortable {
     }
 
     private bindWindowEvents(): void {
-        this.bindEvent("mousedown", this.onMouseDownBinding)
-        this.bindEvent("mouseup", this.onMouseUpBinding)
-        this.bindEvent("mousemove", this.onMouseMoveBinding)
-
-        document.addEventListener("scroll", this.onScrollBinding, true)
+        bindWindowEvent("mousedown", this.onMouseDown.bind(this))
+        bindWindowEvent("mouseup", this.onMouseUp.bind(this))
+        bindWindowEvent("mousemove", this.onMouseMove.bind(this))
+        bindScrollEvent(this.onScroll.bind(this))
     }
 
     private unbindWindowEvents(): void {
-        this.unbindEvent("mousedown", this.onMouseDownBinding)
-        this.unbindEvent("mouseup", this.onMouseUpBinding)
-        this.unbindEvent("mousemove", this.onMouseMoveBinding)
-
-        document.removeEventListener("scroll", this.onScrollBinding, true)
+        unbindWindowEvent("mousedown")
+        unbindWindowEvent("mouseup")
+        unbindWindowEvent("mousemove")
+        unbindScrollEvent()
     }
 
     private calculateNewLimits(): void {
         if (!this.draggingItem)
             throw new Error("No dragging item on limit calculation")
 
-        this.draggingLimits = []
-
-        const currentIndex = this.draggingItem.index + this.draggingIndexOffset
-        const previousElement = this.elements[currentIndex - 1]
-        const nextElement = this.elements[currentIndex + 1]
-
-        if (nextElement)
-            switch (this.listType) {
-                case ListType.Horizontal:
-                    this.draggingLimits.push(
-                        this.limitFromElement(Direction.Right, nextElement),
-                    )
-                    break
-                case ListType.Vertical:
-                    this.draggingLimits.push(
-                        this.limitFromElement(Direction.Down, nextElement),
-                    )
-                    break
-                default:
-                    // TODO: grid list styles
-                    break
-            }
-
-        if (previousElement)
-            switch (this.listType) {
-                case ListType.Horizontal:
-                    this.draggingLimits.push(
-                        this.limitFromElement(Direction.Left, previousElement),
-                    )
-                    break
-                case ListType.Vertical:
-                    this.draggingLimits.push(
-                        this.limitFromElement(Direction.Up, previousElement),
-                    )
-                    break
-                default:
-                    // TODO: grid list styles
-                    break
-            }
+        const index = this.draggingItem.index + this.draggingIndexOffset
+        const previous = this.elements[index - 1]
+        const next = this.elements[index + 1]
+        this.limits = getLimits(this.listType, next, previous)
     }
 
     private findNewDraggingIndex(pos: Position): number {
@@ -531,62 +494,5 @@ export class Sortable {
         this.elements
             .filter(it => it != this.draggingItem)
             .forEach(it => it.resetDisplacement())
-    }
-
-    private isLimitExceeded(limit: Limit, pos: Position): boolean {
-        if (!this.draggingItem)
-            throw new Error("No dragging item on is limit exceeded")
-
-        switch (limit.direction) {
-            case Direction.Up:
-                return pos.y < limit.offset
-            case Direction.Down:
-                return pos.y > limit.offset
-            case Direction.Left:
-                return pos.x < limit.offset
-            case Direction.Right:
-                return pos.x > limit.offset
-        }
-
-        return false
-    }
-
-    private limitFromElement(
-        direction: Direction,
-        element: DraggableItem,
-    ): Limit {
-        const { marginBounds } = element
-        switch (direction) {
-            case Direction.Up:
-                return {
-                    direction,
-                    offset: marginBounds.top + marginBounds.height,
-                }
-            case Direction.Down:
-                return {
-                    direction,
-                    offset: marginBounds.top,
-                }
-            case Direction.Left:
-                return {
-                    direction,
-                    offset: marginBounds.left + marginBounds.width,
-                }
-            case Direction.Right:
-                return {
-                    direction,
-                    offset: marginBounds.left,
-                }
-            case Direction.None:
-                throw new Error("Cant get limit with no direction")
-        }
-    }
-
-    private bindEvent(ev: WindowEvent, fn: (ev: MouseEvent) => void): void {
-        window.addEventListener(ev, fn, { capture: true })
-    }
-
-    private unbindEvent(ev: WindowEvent, fn: (ev: MouseEvent) => void): void {
-        window.removeEventListener(ev, fn, { capture: true })
     }
 }

@@ -61,11 +61,6 @@ export enum Direction {
     None = "none",
 }
 
-export interface Limit {
-    direction: Direction
-    offset: number
-}
-
 export interface Bounds {
     top: number
     left: number

@@ -14,10 +14,11 @@ export class Animation {
     private previous: number = 0
     private elapsed: number = 0
 
+    onDone: () => void = () => {}
+
     constructor(
         private element: DraggableItem,
         private target: Placeholder,
-        private onDone: () => void = () => {},
         private duration: number = 300,
     ) {
         const { left: x, top: y } = this.target.ref.getBoundingClientRect()
@@ -35,7 +36,8 @@ export class Animation {
         this.originalPosition = { x: originalX, y: originalY }
     }
 
-    run() {
+    run(onDone: () => void = () => {}) {
+        this.onDone = onDone
         this.scheduled = requestAnimationFrame(this.tick.bind(this))
     }
 
