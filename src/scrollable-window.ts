@@ -27,8 +27,8 @@ export class ScrollableWindow implements Scrollable {
     }
 
     findScrollAreas(): void {
-        // We disregard the offset as the window will never be
-        // affected by it
+        const documentScrollDimensions = this.getDocumentScrollDimensions()
+
         this.scrollAreas = [
             {
                 bounds: {
@@ -49,8 +49,9 @@ export class ScrollableWindow implements Scrollable {
                     width: this.visibleBounds.width,
                     height: this.visibleBounds.height * windowScrollAreaSize,
                 },
-                // TODO
-                canScroll: true,
+                canScroll:
+                    document.documentElement!.scrollTop + window.innerHeight <
+                    documentScrollDimensions.y,
                 direction: Direction.Down,
             },
             {
@@ -72,8 +73,9 @@ export class ScrollableWindow implements Scrollable {
                     width: this.visibleBounds.width * windowScrollAreaSize,
                     height: this.visibleBounds.height,
                 },
-                // TODO
-                canScroll: true,
+                canScroll:
+                    document.documentElement!.scrollLeft + window.innerWidth <
+                    documentScrollDimensions.x,
                 direction: Direction.Right,
             },
         ]
@@ -132,5 +134,27 @@ export class ScrollableWindow implements Scrollable {
 
     getTarget(): HTMLElement | Document {
         return document
+    }
+
+    private getDocumentScrollDimensions(): Position {
+        const height = Math.max(
+            document.body.scrollHeight,
+            document.documentElement!.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement!.offsetHeight,
+            document.body.clientHeight,
+            document.documentElement!.clientHeight,
+        )
+
+        const width = Math.max(
+            document.body.scrollWidth,
+            document.documentElement!.scrollWidth,
+            document.body.offsetWidth,
+            document.documentElement!.offsetWidth,
+            document.body.clientWidth,
+            document.documentElement!.clientWidth,
+        )
+
+        return { x: width, y: height }
     }
 }
