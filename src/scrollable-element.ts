@@ -99,71 +99,59 @@ export class ScrollableElement implements Scrollable {
         }
     }
 
-    findScrollAreas(offset: Position): void {
+    findScrollAreas(): void {
         this.scrolling = emptyPosition()
         this.scrollAreas = []
 
         if (isScrollable(this.styles.overflowY)) {
-            this.findScrollAreaForDirection(offset, Direction.Up)
-            this.findScrollAreaForDirection(offset, Direction.Down)
+            this.findScrollAreaForDirection(Direction.Up)
+            this.findScrollAreaForDirection(Direction.Down)
         }
 
         if (isScrollable(this.styles.overflowX)) {
-            this.findScrollAreaForDirection(offset, Direction.Left)
-            this.findScrollAreaForDirection(offset, Direction.Right)
+            this.findScrollAreaForDirection(Direction.Left)
+            this.findScrollAreaForDirection(Direction.Right)
         }
     }
 
     // Returns a copy of the new bounds for this parent
-    clipToBounds(outerBounds: Bounds): Bounds {
+    clipToBounds(outerBounds: Bounds, offset: Position): Bounds {
+        const top = Math.max(this.clientBounds.top - offset.y, outerBounds.top)
+        const left = Math.max(
+            this.clientBounds.left - offset.x,
+            outerBounds.left,
+        )
         const bottom = Math.min(
-            this.clientBounds.top + this.clientBounds.height,
+            this.clientBounds.top + this.clientBounds.height - offset.y,
             outerBounds.top + outerBounds.height,
         )
-
         const right = Math.min(
-            this.clientBounds.left + this.clientBounds.width,
+            this.clientBounds.left + this.clientBounds.width - offset.x,
             outerBounds.left + outerBounds.width,
         )
 
-        this.visibleBounds.top = Math.max(
-            this.clientBounds.top,
-            outerBounds.top,
-        )
-        this.visibleBounds.left = Math.max(
-            this.clientBounds.left,
-            outerBounds.left,
-        )
-
-        this.visibleBounds.width = right - this.visibleBounds.left
-        this.visibleBounds.height = bottom - this.visibleBounds.top
+        this.visibleBounds = {
+            top,
+            left,
+            width: right - left,
+            height: bottom - top,
+        }
 
         return { ...this.visibleBounds }
     }
 
-    private findScrollAreaForDirection(
-        offset: Position,
-        direction: Direction,
-    ): void {
+    private findScrollAreaForDirection(direction: Direction): void {
         const canScroll = this.canScrollInDirection(direction)
-
-        // TODO: Simplify these
-        const top = this.visibleBounds.top - offset.y
-        const bottom =
-            this.visibleBounds.top + this.visibleBounds.height - offset.y
-        const left = this.visibleBounds.left - offset.x
-        const right =
-            this.visibleBounds.left + this.visibleBounds.width - offset.x
 
         switch (direction) {
             case Direction.Up:
                 this.scrollAreas.push({
                     bounds: {
-                        top,
-                        left,
-                        width: right - left,
+                        top: this.visibleBounds.top,
+                        left: this.visibleBounds.left,
+                        width: this.visibleBounds.width,
                         height:
-                            this.clientBounds.height * elementScrollAreaSize,
+                            this.visibleBounds.height * elementScrollAreaSize,
                     },
                     canScroll,
                     direction,
@@ -173,12 +161,13 @@ export class ScrollableElement implements Scrollable {
                 this.scrollAreas.push({
                     bounds: {
                         top:
-                            bottom -
-                            this.clientBounds.height * elementScrollAreaSize,
-                        left,
-                        width: right - left,
+                            this.visibleBounds.top +
+                            this.visibleBounds.height -
+                            this.visibleBounds.height * elementScrollAreaSize,
+                        left: this.visibleBounds.left,
+                        width: this.visibleBounds.width,
                         height:
-                            this.clientBounds.height * elementScrollAreaSize,
+                            this.visibleBounds.height * elementScrollAreaSize,
                     },
                     canScroll,
                     direction,
@@ -187,10 +176,10 @@ export class ScrollableElement implements Scrollable {
             case Direction.Left:
                 this.scrollAreas.push({
                     bounds: {
-                        top,
-                        left,
-                        width: this.clientBounds.width * elementScrollAreaSize,
-                        height: bottom - top,
+                        top: this.visibleBounds.top,
+                        left: this.visibleBounds.left,
+                        width: this.visibleBounds.width * elementScrollAreaSize,
+                        height: this.visibleBounds.height,
                     },
                     canScroll,
                     direction,
@@ -199,12 +188,13 @@ export class ScrollableElement implements Scrollable {
             case Direction.Right:
                 this.scrollAreas.push({
                     bounds: {
-                        top,
+                        top: this.visibleBounds.top,
                         left:
-                            right -
-                            this.clientBounds.width * elementScrollAreaSize,
+                            this.visibleBounds.left +
+                            this.visibleBounds.width -
+                            this.visibleBounds.width * elementScrollAreaSize,
                         width: this.clientBounds.width * elementScrollAreaSize,
-                        height: bottom - top,
+                        height: this.visibleBounds.height,
                     },
                     canScroll,
                     direction,

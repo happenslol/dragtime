@@ -11,10 +11,10 @@ export const minElementScrollSpeed = 5
 export const maxElementScrollSpeed = 20
 
 export interface Scrollable {
-    findScrollAreas: (offset: Position) => void
+    findScrollAreas: () => void
     updateScrolling: (position: Position) => void
     updateOffsetDelta: () => void
-    clipToBounds: (outerBounds: Bounds) => Bounds
+    clipToBounds: (outerBounds: Bounds, offset: Position) => Bounds
     shouldScroll: () => boolean
     doScroll: () => void
     getTarget(): HTMLElement | Document

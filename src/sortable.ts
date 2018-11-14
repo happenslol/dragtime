@@ -157,16 +157,16 @@ export class Sortable {
     }
 
     private calculateScrollAreas(): void {
-        const windowScrollable = this.scrollables[this.scrollables.length - 1]
-        const offset = windowScrollable.offsetDelta
-
         // Go through the scroll parents in reverse order, so we can pass
         // down the visible bounds
         let visibleBounds = emptyBounds()
+        const offset = emptyPosition()
         for (let i = this.scrollables.length - 1; i >= 0; i--) {
             const it = this.scrollables[i]
-            visibleBounds = it.clipToBounds(visibleBounds)
-            it.findScrollAreas(offset)
+            visibleBounds = it.clipToBounds(visibleBounds, offset)
+            it.findScrollAreas()
+            offset.x += it.offsetDelta.x
+            offset.y += it.offsetDelta.y
         }
     }
 

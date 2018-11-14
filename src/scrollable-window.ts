@@ -26,7 +26,7 @@ export class ScrollableWindow implements Scrollable {
         }
     }
 
-    findScrollAreas(_offset: Position): void {
+    findScrollAreas(): void {
         // We disregard the offset as the window will never be
         // affected by it
         this.scrollAreas = [
@@ -116,7 +116,7 @@ export class ScrollableWindow implements Scrollable {
         }
     }
 
-    clipToBounds(_outerBounds: Bounds): Bounds {
+    clipToBounds(_outerBounds: Bounds, _offset: Position): Bounds {
         // The window is always the outer bound, so we return
         // our bounds regardless of what was passed in
         return this.visibleBounds
