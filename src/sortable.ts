@@ -38,7 +38,6 @@ export interface SortableOptions {
 
 const DefaultOptions: SortableOptions = {
     listType: ListType.Horizontal,
-    childSelector: undefined,
 }
 
 export class Sortable {

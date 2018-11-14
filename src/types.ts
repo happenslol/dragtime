@@ -52,13 +52,12 @@ export const emptyMargins: () => Margins = () => ({
 
 export type WindowEvent = "mousedown" | "mouseup" | "mousemove"
 
-// TODO: These should be numbers
 export enum Direction {
-    Up = "up",
-    Down = "down",
-    Left = "left",
-    Right = "right",
-    None = "none",
+    Up,
+    Down,
+    Left,
+    Right,
+    None,
 }
 
 export interface Bounds {
