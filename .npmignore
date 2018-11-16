@@ -1,0 +1,5 @@
+/src
+/examples
+/.cache
+/.rts2_*
+/tsconfig.json
