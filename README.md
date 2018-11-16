@@ -24,7 +24,7 @@ The list element itself can not be scrollable, but can be wrapped in an arbitrar
 
 Here's a simple usage example:
 
-```
+```ts
 import { Sortable } from "dragtime"
 
 const element = document.getElementsByClassName("some-list")
