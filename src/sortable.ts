@@ -117,8 +117,12 @@ export class Sortable {
         return this.elements.map(it => it.ref)
     }
 
-    toIdsArray(): Array<string> {
+    toIdArray(): Array<string> {
         return this.elements.map(it => it.id)
+    }
+
+    toIndexArray(): Array<number> {
+        return this.elements.map(it => it.originalIndex)
     }
 
     private calculateDimensions(): void {

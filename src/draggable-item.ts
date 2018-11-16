@@ -22,6 +22,7 @@ export enum DraggableState {
 
 export class DraggableItem {
     id: string
+    originalIndex: number
     state: DraggableState = DraggableState.Idle
 
     margins: Margins = emptyMargins()
@@ -37,6 +38,8 @@ export class DraggableItem {
         public listType: ListType,
         onMouseDown: (item: DraggableItem, ev: MouseEvent) => void,
     ) {
+        this.originalIndex = index
+
         this.id =
             this.ref.getAttribute("data-id") ||
             [...Array(10)]
