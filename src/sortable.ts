@@ -113,6 +113,10 @@ export class Sortable {
         this.calculateDimensions()
     }
 
+    toArray(): Array<HTMLElement> {
+        return this.elements.map(it => it.ref)
+    }
+
     private calculateDimensions(): void {
         const { top, left, width, height } = this.ref.getBoundingClientRect()
         this.bounds = { top, left, width, height }
