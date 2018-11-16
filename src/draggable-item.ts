@@ -30,6 +30,8 @@ export class DraggableItem {
     marginBounds: Bounds = emptyBounds()
     center: Position = emptyPosition()
 
+    originalStyle: string
+
     displacement: Displacement = emptyDisplacement()
 
     constructor(
@@ -46,10 +48,19 @@ export class DraggableItem {
                 .map(_ => (~~(Math.random() * 36)).toString(36))
                 .join("")
 
-        this.ref.setAttribute("style", styles.handle)
-        this.ref.addEventListener("mousedown", (ev: MouseEvent) =>
+        let handle: HTMLElement
+        let handleCandidates = this.ref.querySelectorAll("*[data-dt-handle]")
+
+        if (handleCandidates.length > 0)
+            handle = <HTMLElement>handleCandidates[0]
+        else handle = this.ref
+
+        handle.setAttribute("style", styles.handle)
+        handle.addEventListener("mousedown", (ev: MouseEvent) =>
             onMouseDown(this, ev),
         )
+
+        this.originalStyle = this.ref.getAttribute("style") || ""
 
         this.calculateDimensions()
     }
@@ -82,7 +93,7 @@ export class DraggableItem {
     setSteppingAsideStyle(): void {
         this.ref.setAttribute(
             "style",
-            [styles.handle, styles.steppingAside].join(""),
+            [this.originalStyle, styles.steppingAside].join(""),
         )
     }
 
@@ -91,12 +102,12 @@ export class DraggableItem {
     }
 
     removeStyle(): void {
-        this.ref.setAttribute("style", styles.handle)
+        this.ref.setAttribute("style", this.originalStyle)
     }
 
     removeStyleAndDisplacement(): void {
         this.displacement = emptyDisplacement()
-        this.ref.setAttribute("style", styles.handle)
+        this.ref.setAttribute("style", this.originalStyle)
     }
 
     setDisplacement(displacement: Displacement): void {
@@ -110,7 +121,7 @@ export class DraggableItem {
     resetDisplacement(): void {
         this.ref.setAttribute(
             "style",
-            [styles.handle, styles.steppingAside].join(""),
+            [this.originalStyle, styles.steppingAside].join(""),
         )
         this.displacement = emptyDisplacement()
     }
@@ -119,7 +130,7 @@ export class DraggableItem {
         this.ref.setAttribute(
             "style",
             [
-                styles.handle,
+                this.originalStyle,
                 `
                     position: fixed;
                     boxSizing: border-box;
@@ -162,7 +173,7 @@ export class DraggableItem {
                 this.ref.setAttribute(
                     "style",
                     [
-                        styles.handle,
+                        this.originalStyle,
                         styles.steppingAside,
                         `transform: translateX(${offsetString}px);`,
                     ].join("\n"),
@@ -172,7 +183,7 @@ export class DraggableItem {
                 this.ref.setAttribute(
                     "style",
                     [
-                        styles.handle,
+                        this.originalStyle,
                         styles.steppingAside,
                         `transform: translateY(${offsetString}px);`,
                     ].join("\n"),
