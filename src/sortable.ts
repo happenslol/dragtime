@@ -1,7 +1,6 @@
 import { DraggableItem, DraggableState } from "./draggable-item"
 import { Placeholder } from "./placeholder"
 import {
-    WindowEvent,
     DtimeClass,
     Position,
     Bounds,
@@ -13,9 +12,14 @@ import {
 } from "./types"
 
 import { Animation } from "./animate"
-import { findNextScrollParent, Scrollable } from "./scrollable"
+
+import {
+    findNextScrollParent,
+    Scrollable,
+    ScrollableWindow,
+} from "./scrollable"
+
 import { isInBounds, sortByIndex } from "./util"
-import { ScrollableWindow } from "./scrollable-window"
 import { getLimits, isLimitExceeded, Limit } from "./limit"
 import {
     bindWindowEvent,
@@ -63,7 +67,7 @@ export class Sortable {
     private listType: ListType
 
     constructor(
-        private ref: HTMLElement,
+        private ref: HTMLElement | Element,
         options: SortableOptions = DefaultOptions,
     ) {
         this.listType =

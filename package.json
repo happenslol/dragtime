@@ -1,13 +1,13 @@
 {
     "name": "dragtime",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "Modern and clean drag and drop lists",
-    "main": "src/index.js",
-    "directories": {
-        "example": "src/examples"
-    },
+    "main": "dist/dragtime.js",
+    "umd:main": "dist/dragtime.umd.js",
+    "module": "dist/dragtime.mjs",
+    "source": "src/index.ts",
     "scripts": {
-        "dev": "parcel src/examples/index.html",
+        "dev": "parcel examples/index.html",
         "build": "microbundle build",
         "format": "prettier src/**/*.ts --write"
     },

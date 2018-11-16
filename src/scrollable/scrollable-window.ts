@@ -1,6 +1,6 @@
 import { Scrollable, ScrollArea, windowScrollAreaSize } from "./scrollable"
-import { emptyPosition, Bounds, Direction, Position } from "./types"
-import { isInBounds } from "./util"
+import { emptyPosition, Bounds, Direction, Position } from "../types"
+import { isInBounds } from "../util"
 
 export class ScrollableWindow implements Scrollable {
     originalOffset: Position

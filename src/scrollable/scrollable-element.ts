@@ -4,8 +4,8 @@ import {
     Bounds,
     emptyPosition,
     emptyBounds,
-} from "./types"
-import { isInBounds } from "./util"
+} from "../types"
+import { isInBounds } from "../util"
 import {
     Scrollable,
     ScrollArea,
