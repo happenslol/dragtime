@@ -1,11 +1,6 @@
 import { DraggableItem } from "./draggable-item"
-import { Size, DtimeClass, Margins, Bounds } from "./types"
-
-export interface PlaceholderStyle {
-    width: number
-    height: number
-    margin: string
-}
+import { Size, Margins, Bounds } from "./types"
+import * as styles from "./styles"
 
 export class Placeholder {
     ref: HTMLElement
@@ -24,33 +19,31 @@ export class Placeholder {
         if (!parentNode) throw new Error("No parent node for draggable item!")
 
         const { width, height } = bounds
-
         this.ref = parentNode.insertBefore(elem, ref.nextElementSibling)
-        elem.classList.add(DtimeClass.Placeholder)
         this.setStyle(this.getPlaceholderStyle({ width, height }, margins))
+        this.ref.setAttribute("data-placeholder", "")
     }
 
     destroy(): void {
         this.ref.remove()
     }
 
-    private setStyle(style: PlaceholderStyle): void {
-        Object.assign(this.ref.style, style)
+    private setStyle(style: string): void {
+        this.ref.setAttribute("style", [styles.placeholder, style].join("\n"))
     }
 
     private getPlaceholderStyle(
         { width, height }: Size,
         margins: Margins,
-    ): PlaceholderStyle {
-        const result: PlaceholderStyle = {
-            width,
-            height,
+    ): string {
+        return `
+            width: ${width}px;
+            height: ${height}px;
             margin:
-                `${margins.top} ` +
-                `${margins.right} ` +
-                `${margins.bottom} ` +
-                `${margins.left}`,
-        }
-        return result
+                ${margins.top}px
+                ${margins.right}px
+                ${margins.bottom}px
+                ${margins.left}px;
+        `
     }
 }

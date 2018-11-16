@@ -1,41 +1,33 @@
-$prefix: dtime;
-
-.#{$prefix}-handle {
-    // disable unwanted touch interactions
+export const handle = `
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     touch-action: manipulation;
 
-    // grab cursor
     cursor: -webkit-grab;
     cursor: grab;
+`
 
-    &.#{$prefix}-handle--block-pointer {
-        pointer-events: none;
-    }
-}
+export const handleBlockPointer = `
+    pointer-events: none;
+`
 
-.#{$prefix}-stepping-aside {
-    // taken from react-beautiful-dnd
+export const steppingAside = `
     transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
     pointer-events: none;
     cursor: inherit;
-}
+`
 
-.#{$prefix}-placeholder {
-    // background-color: black;
-
-    // make sure this never collapses
+export const placeholder = `
     flex-shrink: 0;
     flex-grow: 0;
-}
+`
 
-body.#{$prefix}-dragging {
-    // taken from react-beautiful-dnd
+export const bodyDragging = `
     cursor: grabbing;
     cursor: -webkit-grabbing;
+
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-}
+`

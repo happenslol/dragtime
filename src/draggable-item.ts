@@ -1,5 +1,4 @@
 import {
-    DtimeClass,
     ZIndex,
     Position,
     Margins,
@@ -13,28 +12,12 @@ import {
     ListType,
 } from "./types"
 
+import * as styles from "./styles"
+
 export enum DraggableState {
     Idle,
     Dragging,
     Dropping,
-}
-
-export interface DraggableStyle {
-    position: string
-    boxSizing: string
-    zIndex: number
-    width: number
-    height: number
-    top: number
-    left: number
-    margin: number
-    pointerEvents: string
-    transition: string
-    transform: string
-}
-
-export interface DisplacementStyle {
-    transform: string
 }
 
 export class DraggableItem {
@@ -53,7 +36,7 @@ export class DraggableItem {
         public listType: ListType,
         onMouseDown: (item: DraggableItem, ev: MouseEvent) => void,
     ) {
-        this.ref.classList.add(DtimeClass.Handle)
+        this.ref.setAttribute("style", styles.handle)
         this.ref.addEventListener("mousedown", (ev: MouseEvent) =>
             onMouseDown(this, ev),
         )
@@ -86,89 +69,108 @@ export class DraggableItem {
         }
     }
 
+    setSteppingAsideStyle(): void {
+        this.ref.setAttribute(
+            "style",
+            [styles.handle, styles.steppingAside].join(""),
+        )
+    }
+
     setPosition(pos: Position): void {
-        this.setStyle(this.getDraggingStyle(pos))
+        this.setDraggingStyle(pos)
     }
 
     removeStyle(): void {
-        requestAnimationFrame(() => {
-            this.ref.removeAttribute("style")
-        })
+        this.ref.setAttribute("style", styles.handle)
+    }
+
+    removeStyleAndDisplacement(): void {
+        this.displacement = emptyDisplacement()
+        this.ref.setAttribute("style", styles.handle)
     }
 
     setDisplacement(displacement: Displacement): void {
         if (this.state !== DraggableState.Idle) return
-
-        if (
-            this.displacement.direction === displacement.direction &&
-            this.displacement.offset === displacement.offset
-        )
-            return
+        if (!this.displacementChanged(displacement)) return
 
         this.displacement = displacement
-
-        if (displacement.direction === DisplacementDirection.None) {
-            this.removeStyle()
-            return
-        }
-
-        this.setStyle(this.getDisplacementStyle(this.displacement))
+        this.setDisplacementStyle()
     }
 
     resetDisplacement(): void {
-        this.ref.removeAttribute("style")
+        this.ref.setAttribute(
+            "style",
+            [styles.handle, styles.steppingAside].join(""),
+        )
         this.displacement = emptyDisplacement()
     }
 
-    private setStyle(style: DraggableStyle | DisplacementStyle): void {
-        Object.assign(this.ref.style, style)
+    private setDraggingStyle(pos: Position = { x: 0, y: 0 }): void {
+        this.ref.setAttribute(
+            "style",
+            [
+                styles.handle,
+                `
+                position: fixed;
+                boxSizing: border-box;
+                zIndex: ${ZIndex.Dragging};
+                width: ${this.bounds.width}px;
+                height: ${this.bounds.height}px;
+                top: ${pos.y}px;
+                left: ${pos.x}px;
+                margin: 0;
+                pointerEvents: none;
+                transition: none;
+            `,
+            ].join(""),
+        )
     }
 
-    private getDraggingStyle(pos: Position = { x: 0, y: 0 }): DraggableStyle {
-        const result: DraggableStyle = {
-            position: "fixed",
-            boxSizing: "border-box",
-            zIndex: ZIndex.Dragging,
-            width: 100,
-            height: 100,
-            top: pos.y,
-            left: pos.x,
-            margin: 0,
-            pointerEvents: "none",
-            transition: "none",
-            transform: "",
+    private displacementChanged(displacement: Displacement): boolean {
+        return (
+            this.displacement.direction !== displacement.direction ||
+            this.displacement.offset !== displacement.offset
+        )
+    }
+
+    private setDisplacementStyle(): void {
+        const { direction, offset } = this.displacement
+        let offsetString = ""
+        switch (direction) {
+            case DisplacementDirection.Forward:
+                offsetString = `${offset}`
+                break
+            case DisplacementDirection.Backward:
+                offsetString = `-${offset}`
+                break
+            default:
+                offsetString = "0"
         }
-
-        return result
-    }
-
-    private getDisplacementStyle({
-        direction,
-        offset,
-    }: Displacement): DisplacementStyle {
-        const offsetString =
-            direction === DisplacementDirection.Forward
-                ? `${offset}`
-                : `-${offset}`
 
         switch (this.listType) {
             case ListType.Horizontal:
-                return {
-                    transform: `translateX(${offsetString}px)`,
-                }
+                this.ref.setAttribute(
+                    "style",
+                    [
+                        styles.handle,
+                        styles.steppingAside,
+                        `transform: translateX(${offsetString}px);`,
+                    ].join("\n"),
+                )
+                break
             case ListType.Vertical:
-                return {
-                    transform: `translateY(${offsetString}px)`,
-                }
+                this.ref.setAttribute(
+                    "style",
+                    [
+                        styles.handle,
+                        styles.steppingAside,
+                        `transform: translateY(${offsetString}px);`,
+                    ].join("\n"),
+                )
+                break
             // TODO: Grid list transforms
             case ListType.GridHorizontal:
-                return {
-                    transform: "",
-                }
             case ListType.GridVertical:
-                return {
-                    transform: "",
-                }
         }
     }
 }

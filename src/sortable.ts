@@ -1,7 +1,6 @@
 import { DraggableItem, DraggableState } from "./draggable-item"
 import { Placeholder } from "./placeholder"
 import {
-    DtimeClass,
     Position,
     Bounds,
     emptyBounds,
@@ -28,6 +27,8 @@ import {
     unbindScrollEvent,
 } from "./events"
 
+import * as styles from "./styles"
+
 export enum SortableState {
     Idle,
     Pending,
@@ -47,6 +48,7 @@ const DefaultOptions: SortableOptions = {
 export class Sortable {
     private elements: Array<DraggableItem> = []
     private bodyRef: HTMLElement = document.querySelector("body") as HTMLElement
+    private oldBodyStyle?: string
 
     state: SortableState = SortableState.Idle
 
@@ -135,7 +137,8 @@ export class Sortable {
 
             this.state = SortableState.Dragging
             this.bindWindowEvents()
-            this.bodyRef.classList.add(DtimeClass.BodyDragging)
+            this.oldBodyStyle = this.bodyRef.getAttribute("style") || undefined
+            this.bodyRef.setAttribute("style", styles.bodyDragging)
 
             this.draggingItem = item
             item.setPosition({ x: item.bounds.left, y: item.bounds.top })
@@ -143,7 +146,7 @@ export class Sortable {
 
             this.elements.forEach(it => {
                 if (it == this.draggingItem) return
-                it.ref.classList.add(DtimeClass.SteppingAside)
+                it.setSteppingAsideStyle()
             })
 
             this.placeholder = new Placeholder(item)
@@ -180,41 +183,41 @@ export class Sortable {
         if (!this.placeholder)
             throw new Error("No placeholder on stop dragging")
 
-        this.elements.forEach(it => {
-            it.ref.classList.remove(DtimeClass.SteppingAside)
-        })
+        this.elements
+            .filter(it => it != this.draggingItem)
+            .forEach(it => it.removeStyleAndDisplacement())
 
         if (this.draggingIndexOffset !== 0) {
-            const insertParent = this.draggingItem.ref.parentNode
+            const insertParent = this.draggingItem!.ref.parentNode
             if (!insertParent)
                 throw new Error("No parent node on stop dragging")
 
             const draggedToIndex =
-                this.draggingItem.index + this.draggingIndexOffset
+                this.draggingItem!.index + this.draggingIndexOffset
             const draggedToElement = this.elements[draggedToIndex]
             if (!draggedToElement)
                 throw new Error("Dragged to element not found on stop dragging")
 
             if (this.draggingIndexOffset > 0) {
                 insertParent.insertBefore(
-                    this.draggingItem.ref,
+                    this.draggingItem!.ref,
                     draggedToElement.ref.nextSibling,
                 )
             } else if (this.draggingIndexOffset < 0) {
                 insertParent.insertBefore(
-                    this.draggingItem.ref,
+                    this.draggingItem!.ref,
                     draggedToElement.ref,
                 )
             }
 
             insertParent.insertBefore(
-                this.placeholder.ref,
-                this.draggingItem.ref,
+                this.placeholder!.ref,
+                this.draggingItem!.ref,
             )
 
             const allElements = Array.from(
-                this.draggingItem.ref.parentElement!.children,
-            ).filter(it => !it.classList.contains(DtimeClass.Placeholder))
+                this.draggingItem!.ref.parentElement!.children,
+            ).filter(it => !it.hasAttribute("data-placeholder"))
 
             this.elements.forEach(it => {
                 it.index = allElements.indexOf(it.ref)
@@ -225,15 +228,16 @@ export class Sortable {
 
             this.elements.sort(sortByIndex)
         }
-
-        this.resetElements()
     }
 
     private stopDragging(): void {
         this.unbindWindowEvents()
         this.moveItemsAfterDrag()
 
-        this.bodyRef.classList.remove(DtimeClass.BodyDragging)
+        if (this.oldBodyStyle) {
+            this.bodyRef.setAttribute("style", this.oldBodyStyle)
+            this.oldBodyStyle = undefined
+        } else this.bodyRef.removeAttribute("style")
         this.draggingIndexOffset = 0
 
         this.currentMousePos = emptyPosition()
@@ -250,10 +254,10 @@ export class Sortable {
                 this.draggingItem!.removeStyle()
                 this.draggingItem = undefined
 
-                requestAnimationFrame(() => {
-                    this.placeholder!.destroy()
-                    this.placeholder = undefined
+                this.placeholder!.destroy()
+                this.placeholder = undefined
 
+                requestAnimationFrame(() => {
                     this.state = SortableState.Idle
                 })
             })

@@ -1,14 +1,3 @@
-export enum DtimeClass {
-    Handle = "dtime-handle",
-    HandleBlockPointer = "dtime-handle--block-pointer",
-    SteppingAside = "dtime-stepping-aside",
-
-    Placeholder = "dtime-placeholder",
-    PlaceholderInactive = "dtime-placeholder-inactive",
-
-    BodyDragging = "dtime-dragging",
-}
-
 export enum ListType {
     Vertical,
     Horizontal,
