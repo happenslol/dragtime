@@ -1,6 +1,6 @@
 {
     "name": "dragtime",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Modern and clean drag and drop lists",
     "main": "dist/dragtime.js",
     "umd:main": "dist/dragtime.umd.js",
