@@ -45,6 +45,13 @@ const DefaultOptions: SortableOptions = {
     listType: ListType.Horizontal,
 }
 
+export function create(
+    ref: HTMLElement | Element,
+    options: SortableOptions = DefaultOptions,
+): Sortable {
+    return new Sortable(ref, options)
+}
+
 export class Sortable {
     private elements: Array<DraggableItem> = []
     private bodyRef: HTMLElement = document.querySelector("body") as HTMLElement
