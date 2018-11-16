@@ -111,17 +111,17 @@ export class DraggableItem {
             [
                 styles.handle,
                 `
-                position: fixed;
-                boxSizing: border-box;
-                zIndex: ${ZIndex.Dragging};
-                width: ${this.bounds.width}px;
-                height: ${this.bounds.height}px;
-                top: ${pos.y}px;
-                left: ${pos.x}px;
-                margin: 0;
-                pointerEvents: none;
-                transition: none;
-            `,
+                    position: fixed;
+                    boxSizing: border-box;
+                    zIndex: ${ZIndex.Dragging};
+                    width: ${this.bounds.width}px;
+                    height: ${this.bounds.height}px;
+                    top: ${pos.y}px;
+                    left: ${pos.x}px;
+                    margin: 0;
+                    pointerEvents: none;
+                    transition: none;
+                `,
             ].join(""),
         )
     }

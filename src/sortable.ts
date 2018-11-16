@@ -39,6 +39,13 @@ export enum SortableState {
 export interface SortableOptions {
     listType?: ListType
     childSelector?: string
+    customClasses?: CustomClasses
+}
+
+export interface CustomClasses {
+    draggingItem?: string
+    draggingItems?: string
+    draggingContainer?: string
 }
 
 const DefaultOptions: SortableOptions = {
@@ -56,6 +63,7 @@ export class Sortable {
     private elements: Array<DraggableItem> = []
     private bodyRef: HTMLElement = document.querySelector("body") as HTMLElement
     private oldBodyStyle?: string
+    private customClasses: CustomClasses
 
     state: SortableState = SortableState.Idle
 
@@ -79,6 +87,8 @@ export class Sortable {
         private ref: HTMLElement | Element,
         options: SortableOptions = DefaultOptions,
     ) {
+        this.customClasses = options.customClasses || {}
+
         this.listType =
             options.listType !== undefined && options.listType !== null
                 ? options.listType
@@ -103,12 +113,12 @@ export class Sortable {
         this.calculateDimensions()
     }
 
-    calculateDimensions(): void {
+    private calculateDimensions(): void {
         const { top, left, width, height } = this.ref.getBoundingClientRect()
         this.bounds = { top, left, width, height }
     }
 
-    onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
+    private onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
         // TODO: Implement sloppy click detection
         if (this.state !== SortableState.Idle) return
 
@@ -118,7 +128,7 @@ export class Sortable {
         this.startDragging(item, pos)
     }
 
-    startDragging(item: DraggableItem, pos: Position): void {
+    private startDragging(item: DraggableItem, pos: Position): void {
         if (this.state !== SortableState.Idle)
             throw new Error("Tried to drag while in idle")
 
@@ -151,9 +161,19 @@ export class Sortable {
             item.setPosition({ x: item.bounds.left, y: item.bounds.top })
             item.state = DraggableState.Dragging
 
+            if (this.customClasses.draggingItem)
+                item.ref.classList.add(this.customClasses.draggingItem)
+
+            if (this.customClasses.draggingContainer)
+                this.ref.classList.add(this.customClasses.draggingContainer)
+
             this.elements.forEach(it => {
                 if (it == this.draggingItem) return
+
                 it.setSteppingAsideStyle()
+
+                if (this.customClasses.draggingItems)
+                    item.ref.classList.add(this.customClasses.draggingItems)
             })
 
             this.placeholder = new Placeholder(item)
@@ -259,13 +279,31 @@ export class Sortable {
             snapAnimation.run(() => {
                 this.draggingItem!.state = DraggableState.Idle
                 this.draggingItem!.removeStyle()
-                this.draggingItem = undefined
 
                 this.placeholder!.destroy()
                 this.placeholder = undefined
 
                 requestAnimationFrame(() => {
                     this.state = SortableState.Idle
+
+                    if (this.customClasses.draggingItem)
+                        this.draggingItem!.ref.classList.remove(
+                            this.customClasses.draggingItem,
+                        )
+
+                    if (this.customClasses.draggingContainer)
+                        this.ref.classList.remove(
+                            this.customClasses.draggingContainer,
+                        )
+
+                    if (this.customClasses.draggingItems)
+                        this.elements.forEach(it =>
+                            it.ref.classList.remove(
+                                this.customClasses.draggingItems!,
+                            ),
+                        )
+
+                    this.draggingItem = undefined
                 })
             })
         })
@@ -396,13 +434,13 @@ export class Sortable {
         })
     }
 
-    onMouseDown(_ev: MouseEvent): void {}
+    private onMouseDown(_ev: MouseEvent): void {}
 
-    onMouseUp(_ev: MouseEvent): void {
+    private onMouseUp(_ev: MouseEvent): void {
         this.stopDragging()
     }
 
-    onMouseMove(ev: MouseEvent): void {
+    private onMouseMove(ev: MouseEvent): void {
         ev.preventDefault()
 
         const { clientX: x, clientY: y } = ev
@@ -412,12 +450,12 @@ export class Sortable {
         this.continueDragging()
     }
 
-    onScroll(ev: UIEvent): void {
+    private onScroll(ev: UIEvent): void {
         if (ev.target)
             this.handleScroll(ev.target as HTMLElement | HTMLDocument)
     }
 
-    handleScroll(target: HTMLElement | Document): void {
+    private handleScroll(target: HTMLElement | Document): void {
         const index = this.scrollables.findIndex(it => it.getTarget() == target)
         if (index !== -1) {
             const found = this.scrollables[index]
