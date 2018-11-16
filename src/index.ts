@@ -1,2 +1,2 @@
-export { Sortable, SortableOptions } from "./sortable"
+export { Sortable, SortableOptions, CustomClasses } from "./sortable"
 export { ListType } from "./types"

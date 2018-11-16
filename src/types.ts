@@ -1,8 +1,8 @@
 export enum ListType {
-    Vertical,
-    Horizontal,
-    GridVertical,
-    GridHorizontal,
+    Vertical = "vertical",
+    Horizontal = "horizontal",
+    GridVertical = "grid-vertical",
+    GridHorizontal = "grid-horizontal",
 }
 
 export enum ZIndex {
