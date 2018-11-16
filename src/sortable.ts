@@ -29,6 +29,14 @@ import {
 
 import * as styles from "./styles"
 
+export const enum DTEventType {
+    DragStart = "dtdragstart",
+    DragDropped = "dtdragdropped",
+    DragEnd = "dtdragend",
+    ExitBounds = "dtexitbounds",
+    EnterBounds = "dtenterbounds",
+}
+
 export enum SortableState {
     Idle,
     Pending,
@@ -52,6 +60,19 @@ const DefaultOptions: SortableOptions = {
     listType: ListType.Horizontal,
 }
 
+function dtEvent(
+    target: HTMLElement | Element,
+    src: HTMLElement | Element,
+    type: DTEventType,
+): Event {
+    return new CustomEvent(type, {
+        detail: {
+            sortable: src,
+            draggingItem: target,
+        },
+    })
+}
+
 export function create(
     ref: HTMLElement | Element,
     options: SortableOptions = DefaultOptions,
@@ -59,7 +80,7 @@ export function create(
     return new Sortable(ref, options)
 }
 
-export class Sortable {
+export class Sortable implements EventTarget {
     private elements: Array<DraggableItem> = []
     private bodyRef: HTMLElement = document.querySelector("body") as HTMLElement
     private oldBodyStyle?: string
@@ -111,6 +132,26 @@ export class Sortable {
         )
 
         this.calculateDimensions()
+    }
+
+    addEventListener(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions | undefined,
+    ): any {
+        return this.ref.addEventListener(type, listener, options)
+    }
+
+    removeEventListener(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | EventListenerOptions | undefined,
+    ): any {
+        return this.ref.removeEventListener(type, listener, options)
+    }
+
+    dispatchEvent(event: Event): any {
+        return this.ref.dispatchEvent(event)
     }
 
     toArray(): Array<HTMLElement> {
@@ -172,6 +213,10 @@ export class Sortable {
             this.draggingItem = item
             item.setPosition({ x: item.bounds.left, y: item.bounds.top })
             item.state = DraggableState.Dragging
+
+            this.dispatchEvent(
+                dtEvent(item.ref, this.ref, DTEventType.DragStart),
+            )
 
             if (this.customClasses.draggingItem)
                 item.ref.classList.add(this.customClasses.draggingItem)
@@ -273,6 +318,10 @@ export class Sortable {
         this.unbindWindowEvents()
         this.moveItemsAfterDrag()
 
+        this.dispatchEvent(
+            dtEvent(this.draggingItem!.ref, this.ref, DTEventType.DragDropped),
+        )
+
         if (this.oldBodyStyle) {
             this.bodyRef.setAttribute("style", this.oldBodyStyle)
             this.oldBodyStyle = undefined
@@ -297,6 +346,14 @@ export class Sortable {
 
                 requestAnimationFrame(() => {
                     this.state = SortableState.Idle
+
+                    this.dispatchEvent(
+                        dtEvent(
+                            this.draggingItem!.ref,
+                            this.ref,
+                            DTEventType.DragEnd,
+                        ),
+                    )
 
                     if (this.customClasses.draggingItem)
                         this.draggingItem!.ref.classList.remove(
@@ -364,6 +421,13 @@ export class Sortable {
             if (!this.wasOutOfBounds) {
                 // Left bounds
                 this.wasOutOfBounds = true
+                this.dispatchEvent(
+                    dtEvent(
+                        this.draggingItem!.ref,
+                        this.ref,
+                        DTEventType.ExitBounds,
+                    ),
+                )
 
                 // Reset limits. Might want to keep limits intact
                 // in some form if recalculating them on reenter
@@ -379,6 +443,14 @@ export class Sortable {
         // If we were out of bounds before, we need to recalculate
         // our limits
         if (this.wasOutOfBounds) {
+            this.dispatchEvent(
+                dtEvent(
+                    this.draggingItem!.ref,
+                    this.ref,
+                    DTEventType.EnterBounds,
+                ),
+            )
+
             requestAnimationFrame(() => {
                 // NOTE: Entered bounds
                 this.wasOutOfBounds = false

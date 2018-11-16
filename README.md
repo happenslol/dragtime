@@ -61,7 +61,7 @@ const options = {
     // defined, the direct children of the sortable container will be used.
     // e.g. "li > div > p"
     // defaults to undefined
-    childSelector?: string,
+    childSelector: string,
 
     // Accepts an object containing classes that will be applied to the
     // different elements on drag. See below.
@@ -70,13 +70,49 @@ const options = {
 
 const customClasses = {
     // Applied to an item while it is being dragged.
-    draggingItem: string
+    draggingItem: string,
 
     // Applied to all other items while an item is being dragged.
-    draggingItems: string
+    draggingItems: string,
 
     // Applied to the sortable container while an item is being dragged.
-    draggingContainer: string
+    draggingContainer: string,
+}
+```
+
+### Events
+
+Dragtime features a custom event system which you can hook into to interact with drag and drop actions. You can either add an event listener on the `Sortable` object or directly on the container element you passed to the `Sortable` constructor. Here are the event types you can listen to:
+
+```ts
+// Fired when a drag begins
+"dtdragstart"
+
+// Fired when the entire drag and drop action is done and the sortable is
+// ready for the next interaction
+"dtdragend"
+
+// Fired when the user lets go of the item
+"dtdragdropped"
+
+// Fired when a the user exits the bounds of the scrollable container
+// while dragging an item
+"dtexitbounds"
+
+// Fired when a the user re-enters the bounds of the scrollable container
+// while dragging an item
+"dtenterbounds"
+```
+
+All of these events will contain a `details` object with the following properties:
+
+```ts
+{
+    // The element that is being dragged
+    draggingItem: HTMLElement,
+
+    // the sortable container element
+    sortable: HTMLElement,
 }
 ```
 
