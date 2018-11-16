@@ -21,6 +21,7 @@ export enum DraggableState {
 }
 
 export class DraggableItem {
+    id: string
     state: DraggableState = DraggableState.Idle
 
     margins: Margins = emptyMargins()
@@ -36,6 +37,12 @@ export class DraggableItem {
         public listType: ListType,
         onMouseDown: (item: DraggableItem, ev: MouseEvent) => void,
     ) {
+        this.id =
+            this.ref.getAttribute("data-id") ||
+            [...Array(10)]
+                .map(_ => (~~(Math.random() * 36)).toString(36))
+                .join("")
+
         this.ref.setAttribute("style", styles.handle)
         this.ref.addEventListener("mousedown", (ev: MouseEvent) =>
             onMouseDown(this, ev),
