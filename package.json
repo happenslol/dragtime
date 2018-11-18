@@ -11,13 +11,13 @@
         "vanillajs",
         "minimal"
     ],
-    "main": "dist/dragtime.js",
-    "umd:main": "dist/dragtime.umd.js",
+    "main": "dist/dragtime.common.js",
+    "umd:main": "dist/dragtime.js",
     "module": "dist/dragtime.mjs",
     "source": "src/index.ts",
     "scripts": {
         "dev": "parcel examples/index.html",
-        "build": "microbundle build",
+        "build": "microbundle build --name Dragtime",
         "format": "prettier src/**/*.ts --write"
     },
     "husky": {
