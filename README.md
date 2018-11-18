@@ -24,10 +24,36 @@ The list element itself can not be scrollable, but can be wrapped in an arbitrar
 
 Here's a simple usage example:
 
+#### From VanillaJS
+
+```html
+<html>
+    <head>
+        <title>Dragtime example</title>
+        <script src="dist/dragtime.js"></script>
+    </head>
+
+    <body>
+        <ul id="sortable">
+            <li>item 1</li>
+            <li>item 2</li>
+            <li>item 3</li>
+        </ul>
+
+        <script>
+            var element = document.getElementById("sortable")
+            var sortable = Dragtime.create(element)
+        </script>
+    </body>
+</html>
+```
+
+#### From Typescript
+
 ```ts
 import { Sortable } from "dragtime"
 
-const element = document.getElementsByClassName("some-list")
+const element = document.getElementById("sortable")
 const sortable = new Sortable(element)
 ```
 
@@ -47,6 +73,8 @@ const ids = sortable.toIdArray()
 // when the sortable was created.
 const indices = sortable.toIndexArray()
 ```
+
+### Options
 
 Additionally, you can pass an options object to customize more behaviour. Here's what each option does:
 
@@ -78,6 +106,19 @@ const customClasses = {
     // Applied to the sortable container while an item is being dragged.
     draggingContainer: string,
 }
+```
+
+### Custom handle
+
+If you don't want the entire list elements to be the drag handle, you can define which child element should be grabbable. Just add the `data-handle` attribute to the element. Whether or not an element has a handle and where it is can be different for each element, and Dragtime will set the required styles for you (Such as cursor style). Here's an example:
+
+```html
+<li class="list-item">
+    <div class="handle" data-handle>
+    <p class="text">
+        This is a list item with a custom handle.
+    </p>
+</li>
 ```
 
 ### Events
@@ -119,3 +160,6 @@ All of these events will contain a `details` object with the following propertie
 ### Compatibility
 
 Dragtime is not trying to provide as much browser compatibility as possible, instead it is targeting only evergreen browsers and as a result can drop all dependencies and be more efficient.
+
+### License
+Dragtime is licensed under the MIT license, so you can use it for whatever you want.
