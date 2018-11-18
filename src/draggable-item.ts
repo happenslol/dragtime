@@ -43,13 +43,13 @@ export class DraggableItem {
         this.originalIndex = index
 
         this.id =
-            this.ref.getAttribute("data-id") ||
+            this.ref.getAttribute("data-dt-id") ||
             [...Array(10)]
                 .map(_ => (~~(Math.random() * 36)).toString(36))
                 .join("")
 
         let handle: HTMLElement
-        let handleCandidates = this.ref.querySelectorAll("*[data-dt-handle]")
+        const handleCandidates = this.ref.querySelectorAll("*[data-dt-handle]")
 
         if (handleCandidates.length > 0)
             handle = <HTMLElement>handleCandidates[0]
