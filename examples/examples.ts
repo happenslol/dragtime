@@ -1,17 +1,11 @@
 import { Sortable, ListType } from "../src"
 
 window.addEventListener("load", () => {
-    const hor = new Sortable(
-        document.getElementsByClassName("list--horizontal")[0],
-    )
-
-    const vert = new Sortable(
-        document.getElementsByClassName("list--vertical")[0],
-        {
-            listType: ListType.Vertical,
-        },
-    )
-
-    hor.addEventListener("dtdragstart", ev => console.dir(ev))
-    vert.addEventListener("dtenterbounds", ev => console.dir(ev))
+    const tableEl = document.getElementsByClassName("sortable-table")[0]!
+    const tableSortable = new Sortable(tableEl, {
+        listType: ListType.Vertical,
+        customClasses: {
+            "draggingItem": "table-dragging",
+        }
+    })
 })
