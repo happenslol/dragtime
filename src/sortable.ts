@@ -497,6 +497,17 @@ export class Sortable implements EventTarget {
             throw new Error("Tried to displace items without dragging item")
 
         const newIndex = this.draggingItem.index + newOffset
+        let offset = 0
+        switch (this.listType) {
+            case ListType.Horizontal:
+                offset = this.draggingItem.marginBounds.width
+                break
+            case ListType.Vertical:
+                offset = this.draggingItem.marginBounds.height
+                break
+            default:
+                break
+        }
 
         this.elements.forEach(it => {
             if (it.index === this.draggingItem!.index) return
@@ -504,7 +515,7 @@ export class Sortable implements EventTarget {
             if (it.index < this.draggingItem!.index && newIndex <= it.index)
                 it.setDisplacement({
                     direction: DisplacementDirection.Forward,
-                    offset: this.draggingItem!.marginBounds.width,
+                    offset,
                 })
             else if (
                 it.index > this.draggingItem!.index &&
@@ -512,7 +523,7 @@ export class Sortable implements EventTarget {
             )
                 it.setDisplacement({
                     direction: DisplacementDirection.Backward,
-                    offset: this.draggingItem!.marginBounds.width,
+                    offset,
                 })
             else it.setDisplacement(emptyDisplacement())
         })

@@ -133,14 +133,14 @@ export class DraggableItem {
                 this.originalStyle,
                 `
                     position: fixed;
-                    boxSizing: border-box;
-                    zIndex: ${ZIndex.Dragging};
+                    box-sizing: border-box;
+                    z-index: ${ZIndex.Dragging};
                     width: ${this.bounds.width}px;
                     height: ${this.bounds.height}px;
                     top: ${pos.y}px;
                     left: ${pos.x}px;
                     margin: 0;
-                    pointerEvents: none;
+                    pointer-events: none;
                     transition: none;
                 `,
             ].join(""),
