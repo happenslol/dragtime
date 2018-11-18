@@ -14,8 +14,9 @@ The library has **no dependencies whatsoever** and is **~5kb gzipped**.
 
 The following big features are still work in progress:
 
--   Vertical and horizontal grid lists
+-   Vertical and horizontal grid lists (multiline lists)
 -   Dragging and dropping between multiple lists of the same type
+-   Extensive unit and integration tests
 
 ### Usage
 
@@ -159,6 +160,7 @@ All of these events will contain a `details` object with the following propertie
 ```
 
 Here's a quick example:
+
 ```ts
 const sortable = new Sortable(element)
 sortable.addEventListener("dtdragstart", ev => {
@@ -172,4 +174,5 @@ sortable.addEventListener("dtdragstart", ev => {
 Dragtime is not trying to provide as much browser compatibility as possible, instead it is targeting only evergreen browsers and as a result can drop all dependencies and be more efficient.
 
 ### License
+
 Dragtime is licensed under the MIT license, so you can use it for whatever you want.
