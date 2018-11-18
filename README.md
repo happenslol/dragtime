@@ -10,6 +10,8 @@ Dragtime is a minimalist library for drag and drop lists. At the moment, the fea
 
 The library has **no dependencies whatsoever** and is **~5kb gzipped**.
 
+Dragtime is heavily inspired by [react-beautiful-dnd](https://github.com/atlassian/react-beautiful-dnd). It aims to bring the same natural feeling and performance to vanillajs, but will probably not be as full-featured. However, some new features (such as multiline lists) are being worked on. Shoutouts to the developers of react-beautiful-dnd for making an awesome library and putting down a lot of the groundwork for this one!
+
 ### Roadmap
 
 The following big features are still work in progress:
