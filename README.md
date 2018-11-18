@@ -1,5 +1,8 @@
 # Dragtime
 
+[![npm](https://img.shields.io/npm/v/dragtime.svg)](https://www.npmjs.com/package/dragtime)
+[![Downloads per month](https://img.shields.io/npm/dm/dragtime.svg)](https://www.npmjs.com/package/dragtime)
+
 Dragtime is a minimalist library for drag and drop lists. At the moment, the features are:
 
 -   Vertical and horizontal lists
@@ -14,11 +17,13 @@ Dragtime is heavily inspired by [react-beautiful-dnd](https://github.com/atlassi
 
 ### Roadmap
 
-The following big features are still work in progress:
+The following big features are still work in progress, being worked on in the listed order:
 
--   Vertical and horizontal grid lists (multiline lists)
 -   Dragging and dropping between multiple lists of the same type
+-   Vertical and horizontal grid lists (multiline lists)
 -   Extensive unit and integration tests
+
+Dragtime is still under development, so please [report any bugs you find!](https://github.com/happenslol/dragtime/issues)
 
 ### Usage
 
@@ -168,7 +173,6 @@ const sortable = new Sortable(element)
 sortable.addEventListener("dtdragstart", ev => {
     console.log(`started dragging item ${ev.details.draggingItem.id}!`)
 })
-
 ```
 
 ### Compatibility

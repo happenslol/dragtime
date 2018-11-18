@@ -1,7 +1,11 @@
 {
     "name": "dragtime",
-    "version": "0.4.2",
+    "version": "0.4.3",
     "description": "Modern and clean drag and drop lists",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/happenslol/dragtime.git"
+    },
     "keywords": [
         "drag and drop",
         "dnd",
