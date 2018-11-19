@@ -3,8 +3,8 @@ export const handle = `
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     touch-action: manipulation;
 
-    cursor: -webkit-grab!important;
-    cursor: grab!important;
+    cursor: -webkit-grab;
+    cursor: grab;
 `
 
 export const handleBlockPointer = `
@@ -23,8 +23,8 @@ export const placeholder = `
 `
 
 export const bodyDragging = `
-    cursor: grabbing;
-    cursor: -webkit-grabbing;
+    cursor: grabbing!important;
+    cursor: -webkit-grabbing!important;
 
     user-select: none;
     -webkit-user-select: none;
