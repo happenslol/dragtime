@@ -19,3 +19,9 @@ export function sortByIndex(
 
     throw new Error("Found same index twice")
 }
+
+export function generateId(): string {
+    return [...Array(10)]
+        .map(_ => (~~(Math.random() * 36)).toString(36))
+        .join("")
+}

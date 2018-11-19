@@ -13,6 +13,7 @@ import {
 } from "./types"
 
 import * as styles from "./styles"
+import { generateId } from "./util"
 
 export enum DraggableState {
     Idle,
@@ -38,15 +39,12 @@ export class DraggableItem {
         public ref: HTMLElement,
         public index: number,
         public listType: ListType,
+        private parentId: string,
         onMouseDown: (item: DraggableItem, ev: MouseEvent) => void,
     ) {
         this.originalIndex = index
 
-        this.id =
-            this.ref.getAttribute("data-dt-id") ||
-            [...Array(10)]
-                .map(_ => (~~(Math.random() * 36)).toString(36))
-                .join("")
+        this.id = this.ref.getAttribute("data-dt-id") || generateId()
 
         let handle: HTMLElement
         const handleCandidates = this.ref.querySelectorAll("*[data-dt-handle]")
@@ -56,6 +54,7 @@ export class DraggableItem {
         else handle = this.ref
 
         handle.setAttribute("style", styles.handle)
+        handle.setAttribute("data-dt-is-handle", `${this.parentId}-${this.id}`)
         handle.addEventListener("mousedown", (ev: MouseEvent) =>
             onMouseDown(this, ev),
         )

@@ -18,7 +18,7 @@ import {
     ScrollableWindow,
 } from "./scrollable"
 
-import { isInBounds, sortByIndex } from "./util"
+import { isInBounds, sortByIndex, generateId } from "./util"
 import { getLimits, isLimitExceeded, Limit } from "./limit"
 import {
     bindWindowEvent,
@@ -103,12 +103,16 @@ export class Sortable implements EventTarget {
     private autoScrollTimer?: number
 
     private listType: ListType
+    private id: string
 
     constructor(
         private ref: HTMLElement | Element,
         options: SortableOptions = DefaultOptions,
     ) {
         this.customClasses = options.customClasses || {}
+
+        this.id = generateId()
+        this.ref.setAttribute("data-dt-is-container", this.id)
 
         this.listType =
             options.listType !== undefined && options.listType !== null
@@ -127,6 +131,7 @@ export class Sortable implements EventTarget {
                     it as HTMLElement,
                     index,
                     this.listType,
+                    this.id,
                     this.onChildMouseDown.bind(this),
                 ),
         )
@@ -172,13 +177,28 @@ export class Sortable implements EventTarget {
     }
 
     private onChildMouseDown(item: DraggableItem, ev: MouseEvent): void {
+        if (ev.defaultPrevented) return
+
+        ev.preventDefault()
+
         // TODO: Implement sloppy click detection
-        if (this.state !== SortableState.Idle) return
+        if (!this.canDrag(ev)) return
 
         const { clientX: x, clientY: y } = ev
         const pos: Position = { x, y }
 
         this.startDragging(item, pos)
+    }
+
+    private canDrag(ev: MouseEvent): boolean {
+        if (this.state !== SortableState.Idle) return false
+
+        const eventId = (ev.target as Element).getAttribute("data-dt-is-handle")
+        if (eventId && eventId.startsWith(`${this.id}-`)) return true // It's one of ours!
+
+        // TODO: Make sure we can drag!
+
+        return true
     }
 
     private startDragging(item: DraggableItem, pos: Position): void {
@@ -200,49 +220,52 @@ export class Sortable implements EventTarget {
 
         this.scrollables.push(new ScrollableWindow())
 
-        this.calculateScrollAreas()
-
         requestAnimationFrame(() => {
+            this.calculateScrollAreas()
+            this.calculateDimensions()
             this.elements.forEach(it => it.calculateDimensions())
 
-            this.state = SortableState.Dragging
-            this.bindWindowEvents()
-            this.oldBodyStyle = this.bodyRef.getAttribute("style") || undefined
-            this.bodyRef.setAttribute("style", styles.bodyDragging)
+            requestAnimationFrame(() => {
+                this.state = SortableState.Dragging
+                this.bindWindowEvents()
+                this.oldBodyStyle =
+                    this.bodyRef.getAttribute("style") || undefined
+                this.bodyRef.setAttribute("style", styles.bodyDragging)
 
-            this.draggingItem = item
-            item.setPosition({ x: item.bounds.left, y: item.bounds.top })
-            item.state = DraggableState.Dragging
+                this.draggingItem = item
+                item.setPosition({ x: item.bounds.left, y: item.bounds.top })
+                item.state = DraggableState.Dragging
 
-            this.dispatchEvent(
-                dtEvent(item.ref, this.ref, DTEventType.DragStart),
-            )
+                this.dispatchEvent(
+                    dtEvent(item.ref, this.ref, DTEventType.DragStart),
+                )
 
-            if (this.customClasses.draggingItem)
-                item.ref.classList.add(this.customClasses.draggingItem)
+                if (this.customClasses.draggingItem)
+                    item.ref.classList.add(this.customClasses.draggingItem)
 
-            if (this.customClasses.draggingContainer)
-                this.ref.classList.add(this.customClasses.draggingContainer)
+                if (this.customClasses.draggingContainer)
+                    this.ref.classList.add(this.customClasses.draggingContainer)
 
-            this.elements.forEach(it => {
-                if (it == this.draggingItem) return
+                this.elements.forEach(it => {
+                    if (it == this.draggingItem) return
 
-                it.setSteppingAsideStyle()
+                    it.setSteppingAsideStyle()
 
-                if (this.customClasses.draggingItems)
-                    item.ref.classList.add(this.customClasses.draggingItems)
+                    if (this.customClasses.draggingItems)
+                        item.ref.classList.add(this.customClasses.draggingItems)
+                })
+
+                this.placeholder = new Placeholder(item)
+                this.draggingIndexOffset = 0
+
+                this.wasOutOfBounds = false
+
+                const diffX = pos.x - item.bounds.left
+                const diffY = pos.y - item.bounds.top
+
+                this.clickOffset = { x: diffX, y: diffY }
+                this.calculateNewLimits()
             })
-
-            this.placeholder = new Placeholder(item)
-            this.draggingIndexOffset = 0
-
-            this.wasOutOfBounds = false
-
-            const diffX = pos.x - item.bounds.left
-            const diffY = pos.y - item.bounds.top
-
-            this.clickOffset = { x: diffX, y: diffY }
-            this.calculateNewLimits()
         })
     }
 

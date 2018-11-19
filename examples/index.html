@@ -1,41 +1,161 @@
 <html>
     <head>
         <title>sortable example</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css"
+        />
         <link rel="stylesheet" type="text/css" href="./examples.scss" />
         <script src="./examples.ts"></script>
     </head>
     <body>
-        <ul class="list list--horizontal">
-            <li class="list__item">Item0</li>
-            <li class="list__item">Item1</li>
-            <li class="list__item">Item2</li>
-            <li class="list__item">Item3</li>
-            <li class="list__item">Item4</li>
-            <li class="list__item">Item5</li>
-            <li class="list__item">Item6</li>
-            <li class="list__item">Item7</li>
-            <li class="list__item">Item8</li>
-            <li class="list__item">Item9</li>
-            <li class="list__item">Item10</li>
-            <li class="list__item">Item11</li>
-        </ul>
+        <section class="hero is-medium is-info is-bold">
+            <div class="hero-body">
+                <div class="container has-text-centered">
+                    <h1 class="title">Dragtime</h1>
+                    <h2 class="subtitle">
+                        Modern and clean drag and drop lists
+                    </h2>
+                </div>
+            </div>
+        </section>
 
-        <div class="scrolling-container-2">
-            <div class="scrolling-container">
-                <ul class="list list--vertical">
-                    <li class="list__item">Item0</li>
-                    <li class="list__item">Item1</li>
-                    <li class="list__item">Item2</li>
-                    <li class="list__item">Item3</li>
-                    <li class="list__item">Item4</li>
-                    <li class="list__item">Item5</li>
-                    <li class="list__item">Item6</li>
-                    <li class="list__item">Item7</li>
-                    <li class="list__item">Item8</li>
-                    <li class="list__item">Item9</li>
-                    <li class="list__item">Item10</li>
-                    <li class="list__item">Item11</li>
-                </ul>
+        <div class="container main">
+            <div class="columns" id="drag-columns">
+                <div class="column is-half drag-column box" id="todos">
+                    <div class="notification is-primary">
+                        <button class="delete"></button> Primar lorem ipsum
+                        dolor sit amet, consectetur adipiscing elit lorem ipsum
+                        dolor. <strong>Pellentesque risus mi</strong>, tempus
+                        quis placerat ut, porta nec nulla.
+                    </div>
+
+                    <div class="notification is-warning">
+                        <button class="delete"></button> Primar lorem ipsum
+                        dolor sit amet, consectetur adipiscing elit lorem ipsum
+                    </div>
+
+                    <div class="notification is-info">
+                        <button class="delete"></button> Primar lorem ipsum
+                        dolor sit amet, consectetur adipiscing elit lorem ipsum
+                        dolor. <strong>Pellentesque risus mi</strong>, tempus
+                        quis placerat ut, porta nec nulla. Vestibulum rhoncus ac
+                        ex sit amet fringilla. Nullam gravida purus diam.
+                    </div>
+
+                    <div class="notification is-danger">
+                        <button class="delete"></button> Primar lorem ipsum
+                        dolor sit amet, consectetur adipiscing elit lorem ipsum
+                        dolor. <strong>Pellentesque risus mi</strong>, tempus
+                        quis placerat ut, porta nec nulla. Vestibulum rhoncus ac
+                        ex sit amet fringilla. Nullam gravida purus diam, et
+                        dictum <a>felis venenatis</a> efficitur. Sit amet,
+                        consectetur adipiscing elit
+                    </div>
+                </div>
+                <div class="column is-half drag-column box" id="articles">
+                    <div class="box">
+                        <article class="media">
+                            <div class="media-left">
+                                <figure class="image is-64x64">
+                                    <img
+                                        src="https://dummyimage.com/128/c9c9c9/000000.jpg"
+                                        alt="Image"
+                                    />
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>John Smith</strong>
+                                        <small>@johnsmith</small>
+                                        <small>31m</small> <br />
+                                        Lorem ipsum dolor sit amet, consectetur
+                                        adipiscing elit. Aenean efficitur sit
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="box">
+                        <article class="media">
+                            <div class="media-left">
+                                <figure class="image is-64x64">
+                                    <img
+                                        src="https://dummyimage.com/128/c9c9c9/000000.jpg"
+                                        alt="Image"
+                                    />
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>John Smith</strong>
+                                        <small>@johnsmith</small>
+                                        <small>31m</small> <br />
+                                        Lorem ipsum dolor sit amet, consectetur
+                                        adipiscing elit. Aenean efficitur sit
+                                        amet massa fringilla egestas. Nullam
+                                        condimentum luctus turpis.
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="box">
+                        <article class="media">
+                            <div class="media-left">
+                                <figure class="image is-64x64">
+                                    <img
+                                        src="https://dummyimage.com/128/c9c9c9/000000.jpg"
+                                        alt="Image"
+                                    />
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>John Smith</strong>
+                                        <small>@johnsmith</small>
+                                        <small>31m</small> <br />
+                                        Lorem ipsum dolor sit amet, consectetur
+                                        adipiscing elit. Aenean efficitur sit
+                                        amet massa fringilla egestas. Nullam
+                                        condimentum luctus turpis.
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="box">
+                        <article class="media">
+                            <div class="media-left">
+                                <figure class="image is-64x64">
+                                    <img
+                                        src="https://dummyimage.com/128/c9c9c9/000000.jpg"
+                                        alt="Image"
+                                    />
+                                </figure>
+                            </div>
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <strong>John Smith</strong>
+                                        <small>@johnsmith</small>
+                                        <small>31m</small> <br />
+                                        Lorem ipsum dolor sit amet, consectetur
+                                        adipiscing elit. Aenean efficitur sit
+                                        amet massa fringilla egestas. Nullam
+                                        condimentum luctus turpis.
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
             </div>
         </div>
     </body>
