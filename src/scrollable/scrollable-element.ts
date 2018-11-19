@@ -204,22 +204,24 @@ export class ScrollableElement implements Scrollable {
     }
 
     private canScrollInDirection(direction: Direction): boolean {
+        // TODO: Figure out why the Down and Right formula doesn't always work
+        // without a small offset
         switch (direction) {
             case Direction.Up:
                 return this.element.scrollTop > 0
             case Direction.Down:
                 return (
-                    this.element.scrollTop <
+                    this.element.scrollTop + 15 <=
                         this.element.scrollHeight - this.element.clientHeight &&
-                    this.element.scrollHeight > this.element.clientHeight
+                    this.element.scrollHeight >= this.element.clientHeight
                 )
             case Direction.Left:
                 return this.element.scrollLeft > 0
             case Direction.Right:
                 return (
-                    this.element.scrollLeft <
+                    this.element.scrollLeft + 15 <=
                         this.element.scrollWidth - this.element.clientWidth &&
-                    this.element.scrollWidth > this.element.clientWidth
+                    this.element.scrollWidth >= this.element.clientWidth
                 )
             default:
                 return false

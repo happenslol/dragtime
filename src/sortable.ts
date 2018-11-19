@@ -207,23 +207,23 @@ export class Sortable implements EventTarget {
 
         this.currentMousePos = pos
 
-        // reset all scroll offsets
-        let nextParent = this.ref.parentElement
-        while (nextParent) {
-            const next = findNextScrollParent(nextParent)
-
-            if (next) {
-                this.scrollables.push(next)
-                nextParent = next.element.parentElement
-            } else break
-        }
-
-        this.scrollables.push(new ScrollableWindow())
-
         requestAnimationFrame(() => {
-            this.calculateScrollAreas()
             this.calculateDimensions()
             this.elements.forEach(it => it.calculateDimensions())
+
+            // reset all scroll offsets
+            let nextParent = this.ref.parentElement
+            while (nextParent) {
+                const next = findNextScrollParent(nextParent)
+
+                if (next) {
+                    this.scrollables.push(next)
+                    nextParent = next.element.parentElement
+                } else break
+            }
+
+            this.scrollables.push(new ScrollableWindow())
+            this.calculateScrollAreas()
 
             requestAnimationFrame(() => {
                 this.state = SortableState.Dragging

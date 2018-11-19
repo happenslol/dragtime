@@ -3,8 +3,8 @@ export const handle = `
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
     touch-action: manipulation;
 
-    cursor: -webkit-grab;
-    cursor: grab;
+    cursor: -webkit-grab!important;
+    cursor: grab!important;
 `
 
 export const handleBlockPointer = `
