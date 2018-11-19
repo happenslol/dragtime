@@ -1,7 +1,11 @@
 # Dragtime
 
+Modern and clean drag and drop lists
+
 [![npm](https://img.shields.io/npm/v/dragtime.svg)](https://www.npmjs.com/package/dragtime)
 [![Downloads per month](https://img.shields.io/npm/dm/dragtime.svg)](https://www.npmjs.com/package/dragtime)
+
+![quote application example](https://raw.githubusercontent.com/happenslol/dragtime/master/assets/demo.gif?raw=true)
 
 Dragtime is a minimalist library for drag and drop lists. At the moment, the features are:
 

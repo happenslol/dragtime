@@ -1,8 +1,35 @@
+body,
+html {
+    background-color: rgba(0, 0, 0, 0.018);
+    min-height: 100vh;
+}
+
 .main {
-    margin-top: 4rem;
+    margin: 4rem 2rem;
+    height: 800px;
+    min-height: 100vh;
 }
 
 .drag-column {
-    padding: 3rem;
+    padding: 1rem;
     margin: 0 1rem;
+    height: 660px;
+    transition: all 0.2s ease-in-out;
+    transition-property: background-color, box-shadow;
+
+    > div {
+        transition: box-shadow 0.2s ease-in-out;
+    }
+}
+
+.dragging-column {
+    box-shadow: 0 4px 6px rgba(10, 10, 10, 0.3), 0 0 0 1px rgba(10, 10, 10, 0.1);
+}
+
+.dragging {
+    box-shadow: 0 4px 6px rgba(10, 10, 10, 0.3), 0 0 0 1px rgba(10, 10, 10, 0.1);
+}
+
+.dragging-bg {
+    background-color: rgba(#209cee, 0.05);
 }

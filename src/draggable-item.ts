@@ -141,6 +141,7 @@ export class DraggableItem {
                     margin: 0;
                     pointer-events: none;
                     transition: none;
+                    cursor: grabbing!important;
                 `,
             ].join(""),
         )
